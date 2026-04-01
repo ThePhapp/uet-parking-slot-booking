@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent_color">#FF6F00</color>
+    <color name="primary_color">#1E88E5</color>
+    <color name="primary_dark_color">#1565C0</color>
+    <string name="app_name">UET Parking Management</string>
+    <string name="available_slots">Trống:</string>
+    <string name="cancel">Hủy</string>
+    <string name="check_availability">Kiểm tra chỗ trống</string>
+    <string name="error_loading_data">Lỗi khi tải dữ liệu</string>
+    <string name="occupied_slots">Đã đỗ:</string>
+    <string name="retry">Thử lại</string>
+    <string name="statistics">Thống kê bãi đỗ xe</string>
+    <string name="title_main">Quản lý Bãi Đỗ Xe UET</string>
+    <string name="total_slots">Tổng chỗ:</string>
+    <style name="Theme.UETParking" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/primary_color</item>
+        <item name="colorPrimaryDark">@color/primary_dark_color</item>
+        <item name="colorAccent">@color/accent_color</item>
+    </style>
+</resources>
