@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">UET Parking Management</string>
+    
+    <!-- Main Activity -->
+    <string name="title_main">Quản lý Bãi Đỗ Xe UET</string>
+    <string name="statistics">Thống kê bãi đỗ xe</string>
+    <string name="total_slots">Tổng chỗ:</string>
+    <string name="available_slots">Trống:</string>
+    <string name="occupied_slots">Đã đỗ:</string>
+    <string name="check_availability">Kiểm tra chỗ trống</string>
+    
+    <!-- Common -->
+    <string name="error_loading_data">Lỗi khi tải dữ liệu</string>
+    <string name="retry">Thử lại</string>
+    <string name="cancel">Hủy</string>
+</resources>
