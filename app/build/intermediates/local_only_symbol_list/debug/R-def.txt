@@ -1,18 +1,11 @@
 R_DEF: Internal format may change without notice
 local
-color accent_color
-color primary_color
-color primary_dark_color
 drawable card_background
 drawable ic_launcher_background
 drawable ic_launcher_foreground
-id btn_check_availability
-id tv_available_slots
-id tv_occupied_slots
-id tv_parking_info
-id tv_title
-id tv_total_slots
-layout activity_main
+id nav_book
+id nav_settings
+id nav_tickets
 mipmap ic_launcher
 mipmap ic_launcher_round
 string app_name
