@@ -1,0 +1,316 @@
+package com.uet.parking.ui.screens.settings
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(onBackClick: () -> Unit = {}, onLogoutClick: () -> Unit = {}) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Cài đặt tài khoản",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF003D9B)
+                        )
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* History */ }) {
+                        Icon(Icons.Default.History, contentDescription = "History", tint = Color.Gray)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFFF7F9FB).copy(alpha = 0.8f)
+                )
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar()
+        },
+        containerColor = Color(0xFFF7F9FB)
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+
+            // Profile Section
+            item {
+                ProfileSection()
+            }
+
+            // Settings Groups
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Main Settings Card
+                    SettingsGroupCard {
+                        SettingsItem(icon = Icons.Default.Person, title = "Thông tin cá nhân")
+                        SettingsItem(icon = Icons.Default.Lock, title = "Đổi mật khẩu")
+                        SettingsItem(icon = Icons.Default.CreditCard, title = "Phương thức thanh toán")
+                    }
+
+                    // Interactive Settings Card
+                    SettingsGroupCard {
+                        SettingsItem(
+                            icon = Icons.Default.Notifications,
+                            title = "Thông báo",
+                            trailing = {
+                                Switch(checked = true, onCheckedChange = {})
+                            }
+                        )
+                        SettingsItem(
+                            icon = Icons.Default.Language,
+                            title = "Ngôn ngữ",
+                            subtitle = "Tiếng Việt",
+                            trailing = {
+                                Icon(Icons.Default.ExpandMore, contentDescription = null, tint = Color.Gray)
+                            }
+                        )
+                    }
+
+                    // Support & Logout
+                    SettingsGroupCard {
+                        SettingsItem(
+                            icon = Icons.Default.Help,
+                            title = "Trung tâm trợ giúp",
+                            trailing = {
+                                Icon(Icons.Default.OpenInNew, contentDescription = null, tint = Color.Gray)
+                            }
+                        )
+                        SettingsItem(
+                            icon = Icons.Default.Logout,
+                            title = "Đăng xuất",
+                            titleColor = Color(0xFFBA1A1A),
+                            showChevron = false,
+                            onClick = onLogoutClick
+                        )
+                    }
+                }
+            }
+
+            // Footer
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "PHIÊN BẢN 2.4.0 (BUILD 89)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray,
+                        letterSpacing = 2.sp
+                    )
+                    Text(
+                        "CAMPUS PARKING MANAGEMENT SYSTEM",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray.copy(alpha = 0.5f),
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileSection() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(contentAlignment = Alignment.BottomEnd) {
+            // Placeholder for profile image
+            Box(
+                modifier = Modifier
+                    .size(112.dp)
+                    .clip(CircleShape)
+                    .background(Color.LightGray)
+                    .padding(4.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+            ) {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    tint = Color.Gray
+                )
+            }
+            Surface(
+                modifier = Modifier
+                    .size(32.dp)
+                    .offset(x = (-4).dp, y = (-4).dp),
+                shape = CircleShape,
+                color = Color(0xFF003D9B),
+                shadowElevation = 4.dp
+            ) {
+                IconButton(onClick = {}) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit Profile",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            "Nguyễn Văn A",
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+        )
+        Text(
+            "sv2024-089@university.edu",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
+fun SettingsGroupCard(content: @Composable ColumnScope.() -> Unit) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(8.dp), content = content)
+    }
+}
+
+@Composable
+fun SettingsItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    titleColor: Color = Color.Unspecified,
+    showChevron: Boolean = true,
+    trailing: @Composable (() -> Unit)? = null,
+    onClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            color = if (titleColor == Color(0xFFBA1A1A)) Color(0xFFFFDAD6).copy(alpha = 0.3f) else Color(0xFFE0E7FF)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = if (titleColor == Color(0xFFBA1A1A)) Color(0xFFBA1A1A) else Color(0xFF003D9B)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = titleColor
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF003D9B),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+        if (trailing != null) {
+            trailing()
+        } else if (showChevron) {
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun BottomNavigationBar() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+        color = Color.White.copy(alpha = 0.8f),
+        shadowElevation = 16.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp, top = 12.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            NavItem(Icons.Default.LocalParking, "Book")
+            NavItem(Icons.Default.ConfirmationNumber, "My Tickets")
+            NavItem(Icons.Default.AccountCircle, "Settings", isSelected = true)
+        }
+    }
+}
+
+@Composable
+fun NavItem(icon: ImageVector, label: String, isSelected: Boolean = false) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isSelected) Color(0xFFE0E7FF) else Color.Transparent)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (isSelected) Color(0xFF003D9B) else Color.Gray
+        )
+        Text(
+            label.uppercase(),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (isSelected) Color(0xFF003D9B) else Color.Gray,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
