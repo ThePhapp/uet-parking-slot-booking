@@ -3,6 +3,8 @@
 *.apk
 *.aar
 local.properties
+gradle.properties
 .DS_Store
 build/
 *.iml
+*.gradle
