@@ -6,3 +6,6 @@ local.properties
 .DS_Store
 build/
 *.iml
+app/build/
+*.apk
+*.bundle
