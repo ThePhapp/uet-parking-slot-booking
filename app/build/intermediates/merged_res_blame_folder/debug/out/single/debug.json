@@ -1,26 +1,22 @@
 [
     {
-        "merged": "com.uet.parking.app-merged_res-54:/drawable_ic_launcher_foreground.xml.flat",
-        "source": "com.uet.parking.app-main-56:/drawable/ic_launcher_foreground.xml"
+        "merged": "com.uet.parking.app-merged_res-60:/drawable_card_background.xml.flat",
+        "source": "com.uet.parking.app-main-62:/drawable/card_background.xml"
     },
     {
-        "merged": "com.uet.parking.app-merged_res-54:/drawable_card_background.xml.flat",
-        "source": "com.uet.parking.app-main-56:/drawable/card_background.xml"
+        "merged": "com.uet.parking.app-merged_res-60:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.uet.parking.app-main-62:/drawable/ic_launcher_background.xml"
     },
     {
-        "merged": "com.uet.parking.app-merged_res-54:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
-        "source": "com.uet.parking.app-main-56:/mipmap-anydpi-v26/ic_launcher_round.xml"
+        "merged": "com.uet.parking.app-merged_res-60:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.uet.parking.app-main-62:/mipmap-anydpi-v26/ic_launcher.xml"
     },
     {
-        "merged": "com.uet.parking.app-merged_res-54:/drawable_ic_launcher_background.xml.flat",
-        "source": "com.uet.parking.app-main-56:/drawable/ic_launcher_background.xml"
+        "merged": "com.uet.parking.app-merged_res-60:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.uet.parking.app-main-62:/drawable/ic_launcher_foreground.xml"
     },
     {
-        "merged": "com.uet.parking.app-merged_res-54:/mipmap-anydpi-v26_ic_launcher.xml.flat",
-        "source": "com.uet.parking.app-main-56:/mipmap-anydpi-v26/ic_launcher.xml"
-    },
-    {
-        "merged": "com.uet.parking.app-merged_res-54:/layout_activity_main.xml.flat",
-        "source": "com.uet.parking.app-main-56:/layout/activity_main.xml"
+        "merged": "com.uet.parking.app-merged_res-60:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.uet.parking.app-main-62:/mipmap-anydpi-v26/ic_launcher_round.xml"
     }
 ]

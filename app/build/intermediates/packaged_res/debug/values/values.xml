@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="accent_color">#FF6F00</color>
-    <color name="primary_color">#1E88E5</color>
-    <color name="primary_dark_color">#1565C0</color>
+<resources xmlns:ns1="http://schemas.android.com/tools">
+    <item name="nav_book" type="id"/>
+    <item name="nav_settings" type="id"/>
+    <item name="nav_tickets" type="id"/>
     <string name="app_name">UET Parking Management</string>
     <string name="available_slots">Trống:</string>
     <string name="cancel">Hủy</string>
@@ -13,9 +13,12 @@
     <string name="statistics">Thống kê bãi đỗ xe</string>
     <string name="title_main">Quản lý Bãi Đỗ Xe UET</string>
     <string name="total_slots">Tổng chỗ:</string>
-    <style name="Theme.UETParking" parent="Theme.AppCompat.Light.DarkActionBar">
-        <item name="colorPrimary">@color/primary_color</item>
-        <item name="colorPrimaryDark">@color/primary_dark_color</item>
-        <item name="colorAccent">@color/accent_color</item>
+    <style name="Theme.UETParking" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#003D9B</item>
+        <item name="colorPrimaryVariant">#003D9B</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#03DAC5</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="android:statusBarColor" ns1:targetApi="l">?attr/colorPrimaryVariant</item>
     </style>
 </resources>

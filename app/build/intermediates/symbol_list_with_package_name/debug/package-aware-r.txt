@@ -1346,7 +1346,6 @@ color abc_tint_edittext
 color abc_tint_seek_thumb
 color abc_tint_spinner
 color abc_tint_switch_track
-color accent_color
 color accent_material_dark
 color accent_material_light
 color androidx_core_ripple_material_light
@@ -2070,8 +2069,6 @@ color mtrl_textinput_focused_box_stroke_color
 color mtrl_textinput_hovered_box_stroke_color
 color notification_action_color_filter
 color notification_icon_bg_color
-color primary_color
-color primary_dark_color
 color primary_dark_material_dark
 color primary_dark_material_light
 color primary_material_dark
@@ -3181,7 +3178,6 @@ id bounce
 id bounceBoth
 id bounceEnd
 id bounceStart
-id btn_check_availability
 id buttonPanel
 id cache_measures
 id callMeasure
@@ -3204,6 +3200,7 @@ id clip_horizontal
 id clip_vertical
 id clockwise
 id closest
+id coil_request_manager
 id collapseActionView
 id compose_view_saveable_id_tag
 id compress
@@ -3389,6 +3386,9 @@ id mtrl_picker_text_input_range_start
 id mtrl_picker_title_text
 id mtrl_view_tag_bottom_padding
 id multiply
+id nav_book
+id nav_settings
+id nav_tickets
 id navigation_bar_item_active_indicator_view
 id navigation_bar_item_icon_container
 id navigation_bar_item_icon_view
@@ -3563,11 +3563,6 @@ id transition_position
 id transition_scene_layoutid_cache
 id transition_transform
 id triangle
-id tv_available_slots
-id tv_occupied_slots
-id tv_parking_info
-id tv_title
-id tv_total_slots
 id unchecked
 id uniform
 id unlabeled
@@ -3706,7 +3701,6 @@ layout abc_search_dropdown_item_icons_2line
 layout abc_search_view
 layout abc_select_dialog_material
 layout abc_tooltip
-layout activity_main
 layout custom_dialog
 layout design_bottom_navigation_item
 layout design_bottom_sheet_dialog
