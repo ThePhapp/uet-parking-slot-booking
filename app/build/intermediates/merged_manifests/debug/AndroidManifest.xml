@@ -21,7 +21,8 @@
         android:extractNativeLibs="false"
         android:label="UET Parking"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
+        android:testOnly="true"
+        android:theme="@style/Theme.UETParking" >
         <activity
             android:name="com.uet.parking.MainActivity"
             android:exported="true" >
@@ -31,6 +32,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="com.uet.parking.ui.activity.BookingFormActivity"
+            android:exported="false"
+            android:theme="@style/Theme.UETParking" />
+        <activity
+            android:name="com.uet.parking.ui.activity.SearchingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.UETParking" />
+        <activity
+            android:name="com.uet.parking.ui.activity.SuccessActivity"
+            android:exported="false"
+            android:theme="@style/Theme.UETParking" />
         <activity
             android:name="androidx.compose.ui.tooling.PreviewActivity"
             android:exported="true" />

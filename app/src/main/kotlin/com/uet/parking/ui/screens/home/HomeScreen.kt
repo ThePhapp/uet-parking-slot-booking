@@ -30,7 +30,9 @@ data class EventUiModel(
 )
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onBookNow: () -> Unit = {}
+) {
     val events = listOf(
         EventUiModel(
             title = "Hội thảo Công nghệ Blockchain trong Giáo dục 2024",
@@ -60,7 +62,8 @@ fun HomeScreen() {
         },
         bottomBar = {
             HomeBottomBar(
-                modifier = Modifier.navigationBarsPadding()
+                modifier = Modifier.navigationBarsPadding(),
+                onBookClick = onBookNow
             )
         }
     ) { innerPadding ->

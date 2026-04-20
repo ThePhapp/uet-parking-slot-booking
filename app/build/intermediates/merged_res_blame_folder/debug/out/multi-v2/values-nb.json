@@ -4,7 +4,7 @@
             "outputFile": "com.uet.parking.app-mergeDebugResources-58:/values-nb/values-nb.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\GIGABYTE\\.gradle\\caches\\transforms-3\\42349fcab7a5a6a21b6eefeb34a9888a\\transformed\\appcompat-1.6.1\\res\\values-nb\\values-nb.xml",
+                    "source": "C:\\Users\\phapo\\.gradle\\caches\\8.13\\transforms\\93b2f38cff54935448d36a555c083e88\\transformed\\appcompat-1.6.1\\res\\values-nb\\values-nb.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -21,24 +21,24 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\GIGABYTE\\.gradle\\caches\\transforms-3\\c1e6bbd6ae797227c099ac661b455439\\transformed\\jetified-foundation-release\\res\\values-nb\\values-nb.xml",
+                    "source": "C:\\Users\\phapo\\.gradle\\caches\\8.13\\transforms\\b58851da2a99fddaf5e3d939be23d541\\transformed\\jetified-ui-release\\res\\values-nb\\values-nb.xml",
                     "from": {
-                        "startLines": "2,3",
-                        "startColumns": "4,4",
-                        "startOffsets": "55,145",
-                        "endColumns": "89,87",
-                        "endOffsets": "140,228"
+                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "105,198,279,376,476,564,640,728,817,899,963,1027,1107,1189,1259,1336,1403",
+                        "endColumns": "92,80,96,99,87,75,87,88,81,63,63,79,81,69,76,66,119",
+                        "endOffsets": "193,274,371,471,559,635,723,812,894,958,1022,1102,1184,1254,1331,1398,1518"
                     },
                     "to": {
-                        "startLines": "183,184",
-                        "startColumns": "4,4",
-                        "startOffsets": "16619,16709",
-                        "endColumns": "89,87",
-                        "endOffsets": "16704,16792"
+                        "startLines": "48,49,50,51,52,56,57,170,171,172,173,175,176,178,180,181,182",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "4374,4467,4548,4645,4745,5057,5133,15565,15654,15736,15800,15942,16022,16184,16355,16432,16499",
+                        "endColumns": "92,80,96,99,87,75,87,88,81,63,63,79,81,69,76,66,119",
+                        "endOffsets": "4462,4543,4640,4740,4828,5128,5216,15649,15731,15795,15859,16017,16099,16249,16427,16494,16614"
                     }
                 },
                 {
-                    "source": "C:\\Users\\GIGABYTE\\.gradle\\caches\\transforms-3\\84114cdc67145947aeae5617e585aba8\\transformed\\material-1.11.0\\res\\values-nb\\values-nb.xml",
+                    "source": "C:\\Users\\phapo\\.gradle\\caches\\8.13\\transforms\\50d594af83dfec7324d4409593b206a2\\transformed\\material-1.11.0\\res\\values-nb\\values-nb.xml",
                     "from": {
                         "startLines": "2,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -57,7 +57,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\GIGABYTE\\.gradle\\caches\\transforms-3\\4dde0fce54f6341b6da19770f76a2130\\transformed\\core-1.12.0\\res\\values-nb\\values-nb.xml",
+                    "source": "C:\\Users\\phapo\\.gradle\\caches\\8.13\\transforms\\2dd3f9b64e1924db0e802c8f53a5c560\\transformed\\core-1.12.0\\res\\values-nb\\values-nb.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -74,24 +74,24 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\GIGABYTE\\.gradle\\caches\\transforms-3\\7e50fda479f0b5de1810a7e3f28644c8\\transformed\\jetified-ui-release\\res\\values-nb\\values-nb.xml",
+                    "source": "C:\\Users\\phapo\\.gradle\\caches\\8.13\\transforms\\3e22ede1135ed2a50af688a7f51cf1bc\\transformed\\jetified-foundation-release\\res\\values-nb\\values-nb.xml",
                     "from": {
-                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "105,198,279,376,476,564,640,728,817,899,963,1027,1107,1189,1259,1336,1403",
-                        "endColumns": "92,80,96,99,87,75,87,88,81,63,63,79,81,69,76,66,119",
-                        "endOffsets": "193,274,371,471,559,635,723,812,894,958,1022,1102,1184,1254,1331,1398,1518"
+                        "startLines": "2,3",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,145",
+                        "endColumns": "89,87",
+                        "endOffsets": "140,228"
                     },
                     "to": {
-                        "startLines": "48,49,50,51,52,56,57,170,171,172,173,175,176,178,180,181,182",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "4374,4467,4548,4645,4745,5057,5133,15565,15654,15736,15800,15942,16022,16184,16355,16432,16499",
-                        "endColumns": "92,80,96,99,87,75,87,88,81,63,63,79,81,69,76,66,119",
-                        "endOffsets": "4462,4543,4640,4740,4828,5128,5216,15649,15731,15795,15859,16017,16099,16249,16427,16494,16614"
+                        "startLines": "183,184",
+                        "startColumns": "4,4",
+                        "startOffsets": "16619,16709",
+                        "endColumns": "89,87",
+                        "endOffsets": "16704,16792"
                     }
                 },
                 {
-                    "source": "C:\\Users\\GIGABYTE\\.gradle\\caches\\transforms-3\\b36681a2c9bba1df60b706b990ee1826\\transformed\\jetified-material3-release\\res\\values-nb\\values-nb.xml",
+                    "source": "C:\\Users\\phapo\\.gradle\\caches\\8.13\\transforms\\6dcac4466784f41873654763e1476578\\transformed\\jetified-material3-release\\res\\values-nb\\values-nb.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
