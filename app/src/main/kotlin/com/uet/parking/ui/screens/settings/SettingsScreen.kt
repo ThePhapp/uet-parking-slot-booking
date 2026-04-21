@@ -1,6 +1,5 @@
 package com.uet.parking.ui.screens.settings
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,51 +15,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uet.parking.ui.theme.BackgroundGray
+import com.uet.parking.ui.theme.PrimaryBlue
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(onBackClick: () -> Unit = {}, onLogoutClick: () -> Unit = {}) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Cài đặt tài khoản",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF003D9B)
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* History */ }) {
-                        Icon(Icons.Default.History, contentDescription = "History", tint = Color.Gray)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFF7F9FB).copy(alpha = 0.8f)
-                )
-            )
-        },
-        bottomBar = {
-            BottomNavigationBar()
-        },
-        containerColor = Color(0xFFF7F9FB)
-    ) { paddingValues ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundGray)
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -152,7 +122,6 @@ fun SettingsScreen(onBackClick: () -> Unit = {}, onLogoutClick: () -> Unit = {})
 fun ProfileSection() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.BottomEnd) {
-            // Placeholder for profile image
             Box(
                 modifier = Modifier
                     .size(112.dp)
@@ -174,7 +143,7 @@ fun ProfileSection() {
                     .size(32.dp)
                     .offset(x = (-4).dp, y = (-4).dp),
                 shape = CircleShape,
-                color = Color(0xFF003D9B),
+                color = PrimaryBlue,
                 shadowElevation = 4.dp
             ) {
                 IconButton(onClick = {}) {
@@ -240,7 +209,7 @@ fun SettingsItem(
                     icon,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = if (titleColor == Color(0xFFBA1A1A)) Color(0xFFBA1A1A) else Color(0xFF003D9B)
+                    tint = if (titleColor == Color(0xFFBA1A1A)) Color(0xFFBA1A1A) else PrimaryBlue
                 )
             }
         }
@@ -255,7 +224,7 @@ fun SettingsItem(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF003D9B),
+                    color = PrimaryBlue,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -265,52 +234,5 @@ fun SettingsItem(
         } else if (showChevron) {
             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
         }
-    }
-}
-
-@Composable
-fun BottomNavigationBar() {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
-        color = Color.White.copy(alpha = 0.8f),
-        shadowElevation = 16.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp, top = 12.dp, start = 16.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            NavItem(Icons.Default.LocalParking, "Book")
-            NavItem(Icons.Default.ConfirmationNumber, "My Tickets")
-            NavItem(Icons.Default.AccountCircle, "Settings", isSelected = true)
-        }
-    }
-}
-
-@Composable
-fun NavItem(icon: ImageVector, label: String, isSelected: Boolean = false) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) Color(0xFFE0E7FF) else Color.Transparent)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            tint = if (isSelected) Color(0xFF003D9B) else Color.Gray
-        )
-        Text(
-            label.uppercase(),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = if (isSelected) Color(0xFF003D9B) else Color.Gray,
-            modifier = Modifier.padding(top = 4.dp)
-        )
     }
 }

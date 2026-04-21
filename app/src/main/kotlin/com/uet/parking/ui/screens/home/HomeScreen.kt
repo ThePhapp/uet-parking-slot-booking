@@ -1,26 +1,21 @@
 package com.uet.parking.ui.screens.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.uet.parking.ui.components.DebtCard
 import com.uet.parking.ui.components.EventCard
-import com.uet.parking.ui.components.HomeBottomBar
-import com.uet.parking.ui.components.HomeTopBar
+import com.uet.parking.ui.theme.BackgroundGray
+import com.uet.parking.ui.theme.PrimaryBlue
 
 data class EventUiModel(
     val title: String,
@@ -31,7 +26,8 @@ data class EventUiModel(
 
 @Composable
 fun HomeScreen(
-    onBookNow: () -> Unit = {}
+    onBookNow: () -> Unit = {},
+    onSettingsClick: () -> Unit = {}
 ) {
     val events = listOf(
         EventUiModel(
@@ -50,27 +46,13 @@ fun HomeScreen(
         )
     )
 
-    Scaffold(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF7F9FB)),
-        containerColor = Color(0xFFF7F9FB),
-        topBar = {
-            Column(modifier = Modifier.statusBarsPadding()) {
-                HomeTopBar()
-            }
-        },
-        bottomBar = {
-            HomeBottomBar(
-                modifier = Modifier.navigationBarsPadding(),
-                onBookClick = onBookNow
-            )
-        }
-    ) { innerPadding ->
+            .background(BackgroundGray)
+    ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -82,42 +64,43 @@ fun HomeScreen(
                 )
             }
 
-            item {
-                HomeSectionHeader()
-            }
+            item { HomeSectionHeader() }
 
             items(events) { event ->
                 EventCard(event = event)
             }
 
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
         }
     }
 }
 
 @Composable
 private fun HomeSectionHeader() {
-    androidx.compose.foundation.layout.Row(
-        modifier = Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.SpaceBetween
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom
     ) {
         Column {
-            androidx.compose.material3.Text(
+            Text(
                 text = "THÔNG BÁO MỚI",
-                color = Color(0xFF003D9B)
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBlue,
+                letterSpacing = 1.sp
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            androidx.compose.material3.Text(
+            Text(
                 text = "Sự kiện trường học",
-                color = Color(0xFF191C1E)
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
             )
         }
 
-        androidx.compose.material3.Text(
+        Text(
             text = "Xem tất cả",
-            color = Color(0xFF003D9B)
+            color = PrimaryBlue,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
         )
     }
 }
