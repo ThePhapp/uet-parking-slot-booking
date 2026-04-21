@@ -5,21 +5,29 @@ import androidx.room3.PrimaryKey
 import androidx.room3.ForeignKey
 
 @Entity(
-    tableName = "payment",
+    tableName = "ticket",
     foreignKeys = [
         ForeignKey(
             entity = User::class,
             parentColumns = ["userId"],
             childColumns = ["userId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = ParkingLot::class,
+            parentColumns = ["parkingId"],
+            childColumns = ["parkingId"],
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
-data class Payment(
+data class Ticket(
     @PrimaryKey(autoGenerate = true)
-    val paymentId: Int = 0,
+    val ticketId: Int = 0,
     val userId: Int?,
-    val amount: Double?,
+    val parkingId: Int?,
+    val startTime: String?,
+    val endTime: String?,
     val status: String?,
-    val createdAt: String?
+    val price: Double = 0.0
 )

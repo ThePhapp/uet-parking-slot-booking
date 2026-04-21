@@ -1,4 +1,4 @@
-package com.uet.parking.data.model
+package com.uet.parking.data.model.payment
 
 data class PaymentRequest(
     val userId: String,
