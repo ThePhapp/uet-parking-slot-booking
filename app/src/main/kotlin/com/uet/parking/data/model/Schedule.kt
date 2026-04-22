@@ -1,8 +1,10 @@
 package com.uet.parking.data.model
 
-import androidx.room3.Entity
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
 @Entity(tableName = "schedules")
 data class Schedule (
-    val id: String
+    @PrimaryKey
+    val id: Int
 )

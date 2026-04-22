@@ -1,8 +1,9 @@
 package com.uet.parking.data.model
 
-import androidx.room3.Entity
-import androidx.room3.PrimaryKey
-import androidx.room3.ForeignKey
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "payment",
@@ -17,9 +18,19 @@ import androidx.room3.ForeignKey
 )
 data class Payment(
     @PrimaryKey(autoGenerate = true)
-    val paymentId: Int = 0,
-    val userId: Int?,
-    val amount: Double?,
-    val status: String?,
-    val createdAt: String?
+    @ColumnInfo(name = "paymentId")
+    // Sửa thành Int? để khớp với notNull=false trong DB thực tế
+    val paymentId: Int? = null,
+
+    @ColumnInfo(name = "userId", defaultValue = "NULL")
+    val userId: Int? = null,
+
+    @ColumnInfo(name = "amount", defaultValue = "NULL")
+    val amount: Double? = null,
+
+    @ColumnInfo(name = "status", defaultValue = "NULL")
+    val status: String? = null,
+
+    @ColumnInfo(name = "createdAt", defaultValue = "NULL")
+    val createdAt: String? = null
 )

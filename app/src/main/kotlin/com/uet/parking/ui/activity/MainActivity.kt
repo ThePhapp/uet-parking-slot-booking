@@ -20,13 +20,16 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Surface {
                     var currentScreen by remember { mutableStateOf("auth") }
+                    var currentUserId by remember { mutableStateOf(0) }
 
                     if (currentScreen == "auth") {
-                        AuthScreen(onLoginSuccess = {
+                        AuthScreen(onLoginSuccess = { userId, role ->
+                            currentUserId = userId
                             currentScreen = "settings"
                         })
                     } else {
                         SettingsScreen(
+                            userId = currentUserId,
                             onBackClick = { currentScreen = "auth" },
                             onLogoutClick = { currentScreen = "auth" }
                         )

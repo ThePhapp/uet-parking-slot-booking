@@ -37,11 +37,12 @@ import com.uet.parking.ui.theme.SurfaceVariant
 fun ParkingLotDetailPage(lotId: Int, onBack: () -> Unit) {
     // Mock data dựa trên lotId
     val lot = ParkingLot(
-        id = lotId,
+        parkingId = lotId,
         name = "Bãi đỗ xe số $lotId",
-        location = "Khu vực A - Tầng 1",
-        currentLoad = 150,
-        maxCap = 200,
+        address = "Khu vực A - Tầng 1",
+        current = 150,
+        capacity = 200,
+        pricePerHour = 10.0,
         status = "Đang hoạt động"
     )
 
@@ -71,14 +72,14 @@ fun ParkingLotDetailPage(lotId: Int, onBack: () -> Unit) {
                 ) {
                     Column {
                         Text(
-                            lot.location.uppercase(),
+                            (lot.address ?: "").uppercase(),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryBlue,
                             letterSpacing = 1.sp
                         )
                         Text(
-                            lot.name,
+                            lot.name ?: "",
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
                         )
                     }
@@ -87,7 +88,7 @@ fun ParkingLotDetailPage(lotId: Int, onBack: () -> Unit) {
                         shape = RoundedCornerShape(24.dp)
                     ) {
                         Text(
-                            lot.status,
+                            lot.status ?: "",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -182,11 +183,11 @@ fun WorkloadGaugeCard(lot: ParkingLot, modifier: Modifier = Modifier) {
             ) {
                 Column {
                     Text("Hiện tại", fontSize = 9.sp, color = Color.Gray)
-                    Text("${lot.currentLoad} xe", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("${lot.current ?: 0} xe", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Kỳ vọng", fontSize = 9.sp, color = Color.Gray)
-                    Text("${lot.maxCap} xe", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                    Text("${lot.capacity ?: 0} xe", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
                 }
             }
         }

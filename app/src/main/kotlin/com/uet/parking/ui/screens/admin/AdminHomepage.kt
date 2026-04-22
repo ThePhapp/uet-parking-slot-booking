@@ -25,18 +25,18 @@ import com.uet.parking.ui.theme.*
 
 @Composable
 fun AdminHomepage(onNavigateToDetail: (Int) -> Unit) {
+    // Danh sách mẫu đã sửa để khớp với Constructor mới của ParkingLot
     val parkingLots = listOf(
-        ParkingLot(1, "Bãi đỗ xe số 1", "Khu vực Phía Bắc - Cổng A", 170, 200, "Busy"),
-        ParkingLot(2, "Bãi đỗ xe số 2", "Khu trung tâm - Tòa C1", 42, 100, "Normal"),
-        ParkingLot(3, "Bãi đỗ xe số 3", "Khu vực Phía Nam - Ký túc xá", 150, 250, "Normal")
+        ParkingLot(parkingId = 1, name = "Bãi đỗ xe số 1", address = "Khu vực Phía Bắc - Cổng A", capacity = 200, current = 170, pricePerHour = 10.0, status = "Busy"),
+        ParkingLot(parkingId = 2, name = "Bãi đỗ xe số 2", address = "Khu trung tâm - Tòa C1", capacity = 100, current = 42, pricePerHour = 10.0, status = "Normal"),
+        ParkingLot(parkingId = 3, name = "Bãi đỗ xe số 3", address = "Khu vực Phía Nam - Ký túc xá", capacity = 250, current = 150, pricePerHour = 10.0, status = "Normal")
     )
 
-    val totalSlots = parkingLots.sumOf { it.maxCap }
-    val availableSlots = totalSlots - parkingLots.sumOf { it.currentLoad }
+    val totalSlots = parkingLots.sumOf { it.capacity ?: 0 }
+    val availableSlots = totalSlots - parkingLots.sumOf { it.current ?: 0 }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundGray)) {
         val width = maxWidth
-        // Quyết định số cột dựa trên độ rộng màn hình
         val columns = if (width < 600.dp) 1 else if (width < 900.dp) 2 else 3
         val horizontalPadding = if (width > 1200.dp) (width - 1200.dp) / 2 + 24.dp else 20.dp
 
@@ -47,12 +47,10 @@ fun AdminHomepage(onNavigateToDetail: (Int) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header: Hero Stats chiếm toàn bộ chiều ngang
             item(span = { GridItemSpan(maxLineSpan) }) {
                 HeroMainStatsCard(totalSlots, availableSlots)
             }
 
-            // Tiêu đề danh sách chiếm toàn bộ chiều ngang
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     "Danh sách Bãi đỗ",
@@ -61,9 +59,9 @@ fun AdminHomepage(onNavigateToDetail: (Int) -> Unit) {
                 )
             }
 
-            // Danh sách các Card bãi đỗ (chia theo cột)
             items(parkingLots) { lot ->
-                ParkingLotCard(lot = lot, onDetailClick = { onNavigateToDetail(lot.id) })
+                // Xử lý lỗi Type Mismatch bằng cách dùng Elvis operator (?: 0)
+                ParkingLotCard(lot = lot, onDetailClick = { onNavigateToDetail(lot.parkingId ?: 0) })
             }
 
             item(span = { GridItemSpan(maxLineSpan) }) {
@@ -81,7 +79,12 @@ fun HeroMainStatsCard(totalSlots: Int, availableSlots: Int) {
         shape = RoundedCornerShape(24.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Icon(Icons.Outlined.Security, null, modifier = Modifier.size(150.dp).align(Alignment.TopEnd).offset(30.dp, (-30).dp), tint = Color.White.copy(0.1f))
+            Icon(
+                Icons.Outlined.Security,
+                null,
+                modifier = Modifier.size(150.dp).align(Alignment.TopEnd).offset(30.dp, (-30).dp),
+                tint = Color.White.copy(0.1f)
+            )
             Column(modifier = Modifier.padding(24.dp)) {
                 Text("TRẠNG THÁI TỔNG THỂ", color = Color.White.copy(0.8f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text("Hoạt động ổn định", color = Color.White, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold))
@@ -107,7 +110,7 @@ private fun StatItem(value: String, label: String) {
 }
 
 @Composable
-fun ParkingLotCard(lot: ParkingLot, onDetailClick: () -> Unit) {
+fun ParkingLotCard(lot: ParkingLot, onDetailClick: (Int) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -121,19 +124,26 @@ fun ParkingLotCard(lot: ParkingLot, onDetailClick: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(lot.name, fontWeight = FontWeight.Bold, maxLines = 1)
-                    Text(lot.location, color = Color.Gray, fontSize = 11.sp, maxLines = 1)
+                    Text(lot.name ?: "", fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(lot.address ?: "", color = Color.Gray, fontSize = 11.sp, maxLines = 1)
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
             LinearProgressIndicator(
+                // lot.density đã được tính toán an toàn trong Entity
                 progress = { lot.density / 100f },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                 color = PrimaryBlue,
                 trackColor = SurfaceVariant
             )
             Spacer(modifier = Modifier.height(20.dp))
-            Button(onClick = onDetailClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+
+            // Xử lý lỗi Type Mismatch tại nút bấm
+            Button(
+                onClick = { onDetailClick(lot.parkingId ?: 0) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
                 Text("Chi tiết", fontWeight = FontWeight.Bold)
             }
         }

@@ -17,38 +17,18 @@ class SuccessActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val date       = intent.getStringExtra(EXTRA_DATE) ?: "--/--/----"
-        val startTime  = intent.getStringExtra(EXTRA_START_TIME) ?: "--:--"
-        val endTime    = intent.getStringExtra(EXTRA_END_TIME) ?: "--:--"
-        val ticketCode = "CP-${(10000..99999).random()}-${('A'..'Z').random()}"
+        // Lấy userId từ Intent nếu có, mặc định là 0
+        val userId = intent.getIntExtra("userId", 0)
 
         setContent {
             SuccessScreen(
-                date       = date,
-                startTime  = startTime,
-                endTime    = endTime,
-                ticketCode = ticketCode,
+                userId = userId,
                 onGoHome = {
                     val i = Intent(this, BookingFormActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     }
                     startActivity(i)
                     finish()
-                },
-                onHistoryClick = {
-                    Toast.makeText(this, "Lịch sử đặt chỗ", Toast.LENGTH_SHORT).show()
-                },
-                onNavItemSelected = { index ->
-                    when (index) {
-                        0 -> {
-                            val i = Intent(this, BookingFormActivity::class.java).apply {
-                                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                            }
-                            startActivity(i)
-                            finish()
-                        }
-                        2 -> Toast.makeText(this, "Settings - Coming soon", Toast.LENGTH_SHORT).show()
-                    }
                 }
             )
         }

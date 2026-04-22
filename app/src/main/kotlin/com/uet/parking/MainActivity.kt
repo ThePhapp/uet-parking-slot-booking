@@ -33,6 +33,7 @@ import com.uet.parking.ui.screens.settings.SettingsScreen
 import com.uet.parking.ui.screens.booking.BookingFormScreen
 import com.uet.parking.ui.screens.booking.SearchingScreen
 import com.uet.parking.ui.screens.booking.SuccessScreen
+import com.uet.parking.ui.screens.booking.TicketScreen
 import com.uet.parking.ui.theme.ParkingTheme
 
 class MainActivity : ComponentActivity() {
@@ -54,10 +55,14 @@ fun MainNavigation() {
 
     // Biến cờ (flag) xác định vai trò người dùng sau khi đăng nhập
     var userRole by remember { mutableStateOf<String?>(null) }
+    var currentUserId by remember { mutableStateOf<Int?>(null) }
     
     // Logic nhận diện role dựa trên màn hình hiện tại (để giữ trạng thái khi xoay màn hình...)
     LaunchedEffect(currentRoute) {
-        if (currentRoute == "auth") userRole = null
+        if (currentRoute == "auth") {
+            userRole = null
+            currentUserId = null
+        }
         else if (currentRoute?.startsWith("admin") == true) userRole = "admin"
         else if (currentRoute in listOf("home", "booking", "tickets", "settings")) userRole = "user"
     }
@@ -142,7 +147,8 @@ fun MainNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("auth") {
-                AuthScreen(onLoginSuccess = { role ->
+                AuthScreen(onLoginSuccess = { userId, role ->
+                    currentUserId = userId
                     userRole = role
                     val startRoute = if (role == "admin") "admin_home" else "home"
                     navController.navigate(startRoute) {
@@ -152,13 +158,31 @@ fun MainNavigation() {
             }
             
             // --- User Routes ---
-            composable("home") { HomeScreen(onSettingsClick = { navController.navigate("settings") }) }
-            composable("booking") { BookingFormScreen(onContinue = { _, _, _ -> navController.navigate("searching") }) }
+            composable("home") { 
+                HomeScreen(
+                    userId = currentUserId ?: 0,
+                    onSettingsClick = { navController.navigate("settings") }
+                ) 
+            }
+            composable("booking") { 
+                BookingFormScreen(
+                    userId = currentUserId ?: 0,
+                    onContinue = { _, _, _ -> navController.navigate("searching") }
+                ) 
+            }
             composable("searching") { SearchingScreen(onNavigateToSuccess = { navController.navigate("success") { popUpTo("booking") { inclusive = true } } }) }
-            composable("success") { SuccessScreen(onGoHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } }) }
-            composable("tickets") { PlaceholderScreen("Màn hình Vé đang phát triển") }
+            composable("success") { 
+                SuccessScreen(
+                    userId = currentUserId ?: 0,
+                    onGoHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } }
+                ) 
+            }
+            composable("tickets") { 
+                TicketScreen(userId = currentUserId ?: 0) 
+            }
             composable("settings") {
                 SettingsScreen(
+                    userId = currentUserId ?: 0,
                     onBackClick = { navController.popBackStack() },
                     onLogoutClick = { navController.navigate("auth") { popUpTo(0) } }
                 )
@@ -177,6 +201,7 @@ fun MainNavigation() {
             composable("admin_booking") { PlaceholderScreen("Lịch trình đặt chỗ (Trống)") }
             composable("admin_settings") {
                 SettingsScreen(
+                    userId = currentUserId ?: 0,
                     onBackClick = { navController.popBackStack() },
                     onLogoutClick = { navController.navigate("auth") { popUpTo(0) } }
                 )

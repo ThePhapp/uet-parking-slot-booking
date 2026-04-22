@@ -1,8 +1,9 @@
 package com.uet.parking.data.model
 
-import androidx.room3.Entity
-import androidx.room3.PrimaryKey
-import androidx.room3.ForeignKey
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "ticket",
@@ -23,11 +24,26 @@ import androidx.room3.ForeignKey
 )
 data class Ticket(
     @PrimaryKey(autoGenerate = true)
-    val ticketId: Int = 0,
-    val userId: Int?,
-    val parkingId: Int?,
-    val startTime: String?,
-    val endTime: String?,
-    val status: String?,
-    val price: Double = 0.0
+    @ColumnInfo(name = "ticketId")
+    // Khớp với Found: notNull=false
+    val ticketId: Int? = null,
+
+    @ColumnInfo(name = "userId", defaultValue = "NULL")
+    val userId: Int? = null,
+
+    @ColumnInfo(name = "parkingId", defaultValue = "NULL")
+    val parkingId: Int? = null,
+
+    @ColumnInfo(name = "startTime", defaultValue = "NULL")
+    val startTime: String? = null,
+
+    @ColumnInfo(name = "endTime", defaultValue = "NULL")
+    val endTime: String? = null,
+
+    @ColumnInfo(name = "status", defaultValue = "NULL")
+    val status: String? = null,
+
+    // Khớp với Found: notNull=false và defaultValue='0.00'
+    @ColumnInfo(name = "price", defaultValue = "0.00")
+    val price: Double? = 0.0
 )

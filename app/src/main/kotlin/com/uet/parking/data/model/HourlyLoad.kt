@@ -1,8 +1,9 @@
 package com.uet.parking.data.model
 
-import androidx.room3.Entity
-import androidx.room3.PrimaryKey
-import androidx.room3.ForeignKey
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "hourlyloads",
@@ -17,9 +18,19 @@ import androidx.room3.ForeignKey
 )
 data class HourlyLoad(
     @PrimaryKey(autoGenerate = true)
-    val loadId: Int = 0,
-    val parkingId: Int?,
-    val date: String?,
-    val shift: Int?,
-    val vehicleCount: Int?
+    @ColumnInfo(name = "loadId")
+    // Sửa thành Int? để khớp với thực tế DB (notNull=false)
+    val loadId: Int? = null,
+
+    @ColumnInfo(name = "parkingId", defaultValue = "NULL")
+    val parkingId: Int? = null,
+
+    @ColumnInfo(name = "date", defaultValue = "NULL")
+    val date: String? = null,
+
+    @ColumnInfo(name = "shift", defaultValue = "NULL")
+    val shift: Int? = null,
+
+    @ColumnInfo(name = "vehicleCount", defaultValue = "NULL")
+    val vehicleCount: Int? = null
 )
