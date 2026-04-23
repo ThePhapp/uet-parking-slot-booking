@@ -139,8 +139,13 @@ fun RegisterScreen(
                     
                     Button(
                         onClick = {
-                            if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+                            val trimmedEmail = email.trim()
+                            if (trimmedEmail.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
                                 errorText = "Vui lòng điền đầy đủ thông tin"
+                                return@Button
+                            }
+                            if (!trimmedEmail.endsWith("@vnu.edu.vn")) {
+                                errorText = "Email phải có đuôi @vnu.edu.vn"
                                 return@Button
                             }
                             if (password != confirmPassword) {
@@ -148,14 +153,14 @@ fun RegisterScreen(
                                 return@Button
                             }
                             scope.launch {
-                                val existingUser = database.userDao().getUserByEmail(email)
+                                val existingUser = database.userDao().getUserByEmail(trimmedEmail)
                                 if (existingUser != null) {
                                     errorText = "Email/Mã SV này đã được đăng ký"
                                 } else {
                                     val newUser = User(
-                                        email = email,
+                                        email = trimmedEmail,
                                         password = password,
-                                        name = email.substringBefore("@"),
+                                        name = trimmedEmail.substringBefore("@"),
                                         role = "user",
                                         debt = 0.0
                                     )
