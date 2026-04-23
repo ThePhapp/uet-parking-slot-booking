@@ -1,5 +1,6 @@
 package com.uet.parking.ui.screens.settings
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,6 +28,7 @@ import com.uet.parking.data.model.User
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun SettingsScreen(userId: Int, onBackClick: () -> Unit = {}, onLogoutClick: () -> Unit = {}) {
     val context = LocalContext.current

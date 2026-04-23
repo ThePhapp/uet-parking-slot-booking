@@ -44,7 +44,7 @@ fun HomeScreen(
 
     val events = listOf(
         EventUiModel(
-            title = "Hội thảo Công nghệ Blockchain trong Giáo dục 2024",
+            title = "Hội thảo Công nghệ Blockchain trong Giáo dục 2026",
             location = "Giảng đường A1",
             time = "14:00 - 20/10",
             featured = true
