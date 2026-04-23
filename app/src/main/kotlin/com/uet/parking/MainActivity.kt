@@ -23,6 +23,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.components.common.AppBottomNavigationBar
 import com.uet.parking.ui.components.common.AppTopBar
 import com.uet.parking.ui.screens.admin.AdminHomepage
@@ -54,7 +55,7 @@ fun MainNavigation() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Biến cờ (flag) xác định vai trò người dùng sau khi đăng nhập
-    var userRole by remember { mutableStateOf<String?>(null) }
+    var userRole by remember { mutableStateOf<UserRole?>(null) }
     var currentUserId by remember { mutableStateOf<Int?>(null) }
     
     // Logic nhận diện role dựa trên màn hình hiện tại (để giữ trạng thái khi xoay màn hình...)
@@ -63,12 +64,12 @@ fun MainNavigation() {
             userRole = null
             currentUserId = null
         }
-        else if (currentRoute?.startsWith("admin") == true) userRole = "admin"
-        else if (currentRoute in listOf("home", "booking", "tickets", "settings")) userRole = "user"
+        else if (currentRoute?.startsWith("admin") == true) userRole = UserRole.ADMIN
+        else if (currentRoute in listOf("home", "booking", "tickets", "settings")) userRole = UserRole.USER
     }
 
-    val isAdmin = userRole == "admin"
-    val isUser = userRole == "user"
+    val isAdmin = userRole == UserRole.ADMIN
+    val isUser = userRole == UserRole.USER
 
     Scaffold(
         topBar = {
@@ -150,7 +151,7 @@ fun MainNavigation() {
                 AuthScreen(onLoginSuccess = { userId, role ->
                     currentUserId = userId
                     userRole = role
-                    val startRoute = if (role == "admin") "admin_home" else "home"
+                    val startRoute = if (role == UserRole.ADMIN) "admin_home" else "home"
                     navController.navigate(startRoute) {
                         popUpTo("auth") { inclusive = true }
                     }

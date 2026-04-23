@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uet.parking.data.local.db.AppDatabase
+import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.components.DebtCard
 import com.uet.parking.ui.components.EventCard
 import com.uet.parking.ui.theme.BackgroundGray
@@ -76,7 +77,7 @@ fun HomeScreen(
                 
                 DebtCard(
                     debt = formattedDebt,
-                    cardType = if (user?.role == "admin") "Quản trị viên" else "Sinh Viên",
+                    cardType = if (user?.role == UserRole.ADMIN) "Quản trị viên" else "Sinh Viên",
                     studentCode = user?.email?.substringBefore("@")?.uppercase() ?: "---"
                 )
             }

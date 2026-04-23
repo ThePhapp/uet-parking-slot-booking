@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Person
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.User
+import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
 import kotlinx.coroutines.launch
@@ -35,6 +37,7 @@ fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
+    var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -95,12 +98,22 @@ fun RegisterScreen(
                     )
                     
                     Spacer(modifier = Modifier.height(32.dp))
+
+                    AuthTextField(
+                        value = fullName,
+                        onValueChange = { fullName = it; errorText = "" },
+                        label = "HỌ VÀ TÊN",
+                        placeholder = "Nguyễn Văn A",
+                        icon = Icons.Default.Badge
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
                     
                     AuthTextField(
                         value = email,
                         onValueChange = { email = it; errorText = "" },
-                        label = "EMAIL / MÃ SINH VIÊN",
-                        placeholder = "Nhập mã sinh viên hoặc email",
+                        label = "EMAIL",
+                        placeholder = "example@vnu.edu.vn",
                         icon = Icons.Default.Person
                     )
                     
@@ -140,7 +153,8 @@ fun RegisterScreen(
                     Button(
                         onClick = {
                             val trimmedEmail = email.trim()
-                            if (trimmedEmail.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+                            val trimmedName = fullName.trim()
+                            if (trimmedEmail.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || trimmedName.isEmpty()) {
                                 errorText = "Vui lòng điền đầy đủ thông tin"
                                 return@Button
                             }
@@ -153,20 +167,24 @@ fun RegisterScreen(
                                 return@Button
                             }
                             scope.launch {
-                                val existingUser = database.userDao().getUserByEmail(trimmedEmail)
-                                if (existingUser != null) {
-                                    errorText = "Email/Mã SV này đã được đăng ký"
-                                } else {
-                                    val newUser = User(
-                                        email = trimmedEmail,
-                                        password = password,
-                                        name = trimmedEmail.substringBefore("@"),
-                                        role = "user",
-                                        debt = 0.0
-                                    )
-                                    database.userDao().insertUser(newUser)
-                                    Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
-                                    onRegisterSuccess()
+                                try {
+                                    val existingUser = database.userDao().getUserByEmail(trimmedEmail)
+                                    if (existingUser != null) {
+                                        errorText = "Email này đã được đăng ký"
+                                    } else {
+                                        val newUser = User(
+                                            email = trimmedEmail,
+                                            password = password,
+                                            name = trimmedName,
+                                            role = UserRole.USER,
+                                            debt = 0.0
+                                        )
+                                        database.userDao().insertUser(newUser)
+                                        Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
+                                        onRegisterSuccess()
+                                    }
+                                } catch (e: Exception) {
+                                    errorText = "Lỗi CSDL: ${e.message}"
                                 }
                             }
                         },

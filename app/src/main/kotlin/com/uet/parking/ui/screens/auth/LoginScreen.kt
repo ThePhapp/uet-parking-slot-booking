@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uet.parking.data.local.db.AppDatabase
+import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
 import kotlinx.coroutines.launch
@@ -29,7 +30,7 @@ import kotlinx.coroutines.launch
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (Int, String) -> Unit,
+    onLoginSuccess: (Int, UserRole) -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
@@ -95,8 +96,8 @@ fun LoginScreen(
                     AuthTextField(
                         value = email,
                         onValueChange = { email = it; errorText = "" },
-                        label = "EMAIL / MÃ SINH VIÊN",
-                        placeholder = "Nhập mã sinh viên hoặc email",
+                        label = "EMAIL",
+                        placeholder = "Nhập email",
                         icon = Icons.Default.Person
                     )
                     

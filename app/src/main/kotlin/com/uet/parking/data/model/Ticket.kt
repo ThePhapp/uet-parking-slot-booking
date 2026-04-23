@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import com.uet.parking.data.model.enums.TicketStatus
 
 @Entity(
     tableName = "ticket",
@@ -25,7 +26,6 @@ import androidx.room.PrimaryKey
 data class Ticket(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "ticketId")
-    // Khớp với Found: notNull=false
     val ticketId: Int? = null,
 
     @ColumnInfo(name = "userId", defaultValue = "NULL")
@@ -41,9 +41,8 @@ data class Ticket(
     val endTime: String? = null,
 
     @ColumnInfo(name = "status", defaultValue = "NULL")
-    val status: String? = null,
+    val status: TicketStatus? = TicketStatus.PENDING,
 
-    // Khớp với Found: notNull=false và defaultValue='0.00'
     @ColumnInfo(name = "price", defaultValue = "0.00")
     val price: Double? = 0.0
 )
