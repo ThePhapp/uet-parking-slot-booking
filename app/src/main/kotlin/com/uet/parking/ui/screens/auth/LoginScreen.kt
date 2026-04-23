@@ -124,12 +124,13 @@ fun LoginScreen(
                     
                     Button(
                         onClick = {
-                            if (email.isEmpty() || password.isEmpty()) {
+                            val trimmedEmail = email.trim()
+                            if (trimmedEmail.isEmpty() || password.isEmpty()) {
                                 errorText = "Vui lòng điền đầy đủ thông tin"
                                 return@Button
                             }
                             scope.launch {
-                                val user = database.userDao().getUserByEmail(email)
+                                val user = database.userDao().getUserByEmail(trimmedEmail)
                                 if (user != null && user.password == password) {
                                     onLoginSuccess(user.userId ?: 0, user.role)
                                 } else {
