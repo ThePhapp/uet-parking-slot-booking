@@ -159,11 +159,18 @@ fun MainNavigation() {
             }
             
             // --- User Routes ---
-            composable("home") { 
+            composable("home") {
                 HomeScreen(
                     userId = currentUserId ?: 0,
+
+                    onBookNow = {
+                        navController.navigate("booking") {
+                            launchSingleTop = true
+                        }
+                    },
+
                     onSettingsClick = { navController.navigate("settings") }
-                ) 
+                )
             }
             composable("booking") { 
                 BookingFormScreen(
