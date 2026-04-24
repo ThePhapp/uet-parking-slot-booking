@@ -23,6 +23,7 @@ import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 data class EventUiModel(
     val title: String,
@@ -68,17 +69,39 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
+            item {
+                Button(
+                    onClick = onBookNow,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryBlue
+                    )
+                ) {
+                    Text(
+                        text = "Đặt xe",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
             item {
-                // Định dạng hiển thị nợ phí
                 val rawDebt = user?.debt ?: 0.0
+
                 val formattedDebt = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
                     .format(rawDebt)
-                
+
                 DebtCard(
                     debt = formattedDebt,
-                    cardType = if (user?.role == "admin") "Quản trị viên" else "Sinh Viên",
+                    cardType = if (user?.role?.lowercase() == "admin") {
+                        "Quản trị viên"
+                    } else {
+                        "Sinh Viên"
+                    },
                     studentCode = user?.email?.substringBefore("@")?.uppercase() ?: "---"
                 )
             }
