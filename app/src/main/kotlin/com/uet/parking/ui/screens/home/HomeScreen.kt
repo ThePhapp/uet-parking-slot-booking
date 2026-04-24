@@ -25,6 +25,8 @@ import com.uet.parking.ui.theme.PrimaryBlue
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 data class EventUiModel(
     val title: String,
@@ -39,6 +41,10 @@ fun HomeScreen(
     onBookNow: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
+    var showPaymentResult by remember { mutableStateOf(false) }
+    var isPaymentSuccess by remember { mutableStateOf(false) }
+
+    val mockStudentBalance = 50000.0
     val context = LocalContext.current
     val database = remember { AppDatabase.getDatabase(context) }
     val user by database.userDao().getUserById(userId).collectAsState(initial = null)
@@ -59,6 +65,18 @@ fun HomeScreen(
             location = "Phòng 402, Nhà B"
         )
     )
+
+    if (showPaymentResult) {
+        PaymentResultScreen(
+            isSuccess = isPaymentSuccess,
+            debtAmount = user?.debt ?: 0.0,
+            currentBalance = mockStudentBalance,
+            onBackHome = {
+                showPaymentResult = false
+            }
+        )
+        return
+    }
 
     Box(
         modifier = Modifier
@@ -98,12 +116,17 @@ fun HomeScreen(
 
                 DebtCard(
                     debt = formattedDebt,
-                    cardType = if (user?.role?.lowercase() == "admin") {
+                    cardType = if (user?.role?.name?.lowercase() == "admin") {
                         "Quản trị viên"
                     } else {
                         "Sinh Viên"
                     },
-                    studentCode = user?.email?.substringBefore("@")?.uppercase() ?: "---"
+                    studentCode = user?.email?.substringBefore("@")?.uppercase() ?: "---",
+                    onPaymentClick = {
+                        val currentDebt = user?.debt ?: 0.0
+                        isPaymentSuccess = mockStudentBalance >= currentDebt
+                        showPaymentResult = true
+                    }
                 )
             }
 
