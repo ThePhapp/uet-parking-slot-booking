@@ -1,6 +1,7 @@
 package com.uet.parking.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +18,8 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun HomeBottomBar(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onBookClick: () -> Unit = {}
 ) {
     Row(
         modifier = modifier
@@ -30,7 +32,7 @@ fun HomeBottomBar(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BottomItem(icon = "🚗", label = "Book", selected = true)
+        BottomItem(icon = "🚗", label = "Book", selected = true, onClick = onBookClick)
         BottomItem(icon = "🎫", label = "My Tickets", selected = false)
         BottomItem(icon = "👤", label = "Settings", selected = false)
     }
@@ -40,7 +42,8 @@ fun HomeBottomBar(
 private fun BottomItem(
     icon: String,
     label: String,
-    selected: Boolean
+    selected: Boolean,
+    onClick: () -> Unit = {}
 ) {
     androidx.compose.foundation.layout.Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -49,6 +52,7 @@ private fun BottomItem(
                 color = if (selected) Color(0xFFEEF4FF) else Color.Transparent,
                 shape = RoundedCornerShape(16.dp)
             )
+            .clickable(onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 8.dp)
     ) {
         Text(text = icon, fontSize = 20.sp)

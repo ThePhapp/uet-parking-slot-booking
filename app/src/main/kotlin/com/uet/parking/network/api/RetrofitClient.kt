@@ -17,8 +17,4 @@ object RetrofitClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
-
-    val parkingApiService: ParkingApiService by lazy {
-        retrofit.create(ParkingApiService::class.java)
-    }
 }

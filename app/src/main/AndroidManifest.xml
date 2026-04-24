@@ -5,7 +5,7 @@
         android:allowBackup="true"
         android:label="UET Parking"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        android:theme="@style/Theme.UETParking">
 
         <activity
             android:name=".MainActivity"
@@ -15,6 +15,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.activity.BookingFormActivity"
+            android:exported="false"
+            android:theme="@style/Theme.UETParking" />
+
+        <activity
+            android:name=".ui.activity.SearchingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.UETParking" />
+
+        <activity
+            android:name=".ui.activity.SuccessActivity"
+            android:exported="false"
+            android:theme="@style/Theme.UETParking" />
 
     </application>
 
