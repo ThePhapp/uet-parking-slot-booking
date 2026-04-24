@@ -12,25 +12,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.ParkingLot
 import com.uet.parking.ui.theme.*
 
 @Composable
 fun AdminHomepage(onNavigateToDetail: (Int) -> Unit) {
-    // Danh sách mẫu đã sửa để khớp với Constructor mới của ParkingLot
-    val parkingLots = listOf(
-        ParkingLot(parkingId = 1, name = "Bãi đỗ xe số 1", address = "Khu vực Phía Bắc - Cổng A", capacity = 200, current = 170, pricePerHour = 10.0, status = "Busy"),
-        ParkingLot(parkingId = 2, name = "Bãi đỗ xe số 2", address = "Khu trung tâm - Tòa C1", capacity = 100, current = 42, pricePerHour = 10.0, status = "Normal"),
-        ParkingLot(parkingId = 3, name = "Bãi đỗ xe số 3", address = "Khu vực Phía Nam - Ký túc xá", capacity = 250, current = 150, pricePerHour = 10.0, status = "Normal")
-    )
+    val context = LocalContext.current
+    val database = remember { AppDatabase.getDatabase(context) }
+    val parkingLots by database.parkingLotDao().getAllParkingLots().collectAsState(initial = emptyList())
 
     val totalSlots = parkingLots.sumOf { it.capacity ?: 0 }
     val availableSlots = totalSlots - parkingLots.sumOf { it.current ?: 0 }
@@ -60,7 +59,6 @@ fun AdminHomepage(onNavigateToDetail: (Int) -> Unit) {
             }
 
             items(parkingLots) { lot ->
-                // Xử lý lỗi Type Mismatch bằng cách dùng Elvis operator (?: 0)
                 ParkingLotCard(lot = lot, onDetailClick = { onNavigateToDetail(lot.parkingId ?: 0) })
             }
 
@@ -79,12 +77,7 @@ fun HeroMainStatsCard(totalSlots: Int, availableSlots: Int) {
         shape = RoundedCornerShape(24.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Icon(
-                Icons.Outlined.Security,
-                null,
-                modifier = Modifier.size(150.dp).align(Alignment.TopEnd).offset(30.dp, (-30).dp),
-                tint = Color.White.copy(0.1f)
-            )
+            Icon(Icons.Outlined.Security, null, modifier = Modifier.size(150.dp).align(Alignment.TopEnd).offset(30.dp, (-30).dp), tint = Color.White.copy(0.1f))
             Column(modifier = Modifier.padding(24.dp)) {
                 Text("TRẠNG THÁI TỔNG THỂ", color = Color.White.copy(0.8f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text("Hoạt động ổn định", color = Color.White, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold))
@@ -130,20 +123,13 @@ fun ParkingLotCard(lot: ParkingLot, onDetailClick: (Int) -> Unit) {
             }
             Spacer(modifier = Modifier.height(20.dp))
             LinearProgressIndicator(
-                // lot.density đã được tính toán an toàn trong Entity
-                progress = { lot.density / 100f },
+                progress = { (lot.density / 100f).coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                 color = PrimaryBlue,
                 trackColor = SurfaceVariant
             )
             Spacer(modifier = Modifier.height(20.dp))
-
-            // Xử lý lỗi Type Mismatch tại nút bấm
-            Button(
-                onClick = { onDetailClick(lot.parkingId ?: 0) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
+            Button(onClick = { onDetailClick(lot.parkingId ?: 0) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                 Text("Chi tiết", fontWeight = FontWeight.Bold)
             }
         }
