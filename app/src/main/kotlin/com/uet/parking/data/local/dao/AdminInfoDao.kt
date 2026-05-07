@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AdminInfoDao {
-    @Query("SELECT * FROM admin_info WHERE userId = :userId LIMIT 1")
+    @Query("SELECT * FROM adminInfo WHERE userId = :userId LIMIT 1")
     fun getAdminInfoById(userId: Int): Flow<AdminInfo?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

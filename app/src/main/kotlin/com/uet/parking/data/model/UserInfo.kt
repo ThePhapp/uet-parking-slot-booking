@@ -6,21 +6,20 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "user_info",
+    tableName = "userInfo",
     foreignKeys = [
         ForeignKey(
             entity = User::class,
             parentColumns = ["userId"],
             childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.NO_ACTION
         )
     ]
 )
 data class UserInfo(
     @PrimaryKey
-    @ColumnInfo(name = "userId")
     val userId: Int,
 
-    @ColumnInfo(name = "dept")
-    val dept: Double? = 0.0
+    @ColumnInfo(name = "debt", defaultValue = "0.00")
+    val debt: Double = 0.0
 )

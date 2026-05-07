@@ -43,7 +43,7 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf("") }
-    
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val database = remember { AppDatabase.getDatabase(context) }
@@ -55,7 +55,7 @@ fun RegisterScreen(
     ) {
         val screenWidth = maxWidth
         val isTablet = screenWidth > 800.dp
-        
+
         // Background Decoration
         Box(
             modifier = Modifier
@@ -75,7 +75,7 @@ fun RegisterScreen(
             verticalArrangement = Arrangement.Center
         ) {
             AuthHeader()
-            
+
             Spacer(modifier = Modifier.height(32.dp))
 
             Surface(
@@ -97,7 +97,7 @@ fun RegisterScreen(
                         color = OnSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.height(32.dp))
 
                     AuthTextField(
@@ -109,7 +109,7 @@ fun RegisterScreen(
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
-                    
+
                     AuthTextField(
                         value = email,
                         onValueChange = { email = it; errorText = "" },
@@ -117,9 +117,9 @@ fun RegisterScreen(
                         placeholder = "example@vnu.edu.vn",
                         icon = Icons.Default.Person
                     )
-                    
+
                     Spacer(modifier = Modifier.height(20.dp))
-                    
+
                     AuthTextField(
                         value = password,
                         onValueChange = { password = it; errorText = "" },
@@ -130,7 +130,7 @@ fun RegisterScreen(
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
-                    
+
                     AuthTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it; errorText = "" },
@@ -139,7 +139,7 @@ fun RegisterScreen(
                         icon = Icons.Default.LockReset,
                         isPass = true
                     )
-                    
+
                     if (errorText.isNotEmpty()) {
                         Text(
                             text = errorText,
@@ -150,7 +150,7 @@ fun RegisterScreen(
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
-                    
+
                     Button(
                         onClick = {
                             val trimmedEmail = email.trim()
@@ -173,19 +173,19 @@ fun RegisterScreen(
                                     if (existingUser != null) {
                                         errorText = "Email này đã được đăng ký"
                                     } else {
+                                        // SỬA: Xóa debt khỏi User
                                         val newUser = User(
                                             email = trimmedEmail,
                                             password = password,
                                             name = trimmedName,
-                                            role = UserRole.USER,
-                                            debt = 0.0
+                                            role = UserRole.USER
                                         )
                                         database.userDao().insertUser(newUser)
-                                        
-                                        // Sau khi insert user, lấy lại ID vừa tạo để insert vào bảng Info (Luôn là USER)
+
                                         val createdUser = database.userDao().getUserByEmail(trimmedEmail)
                                         createdUser?.userId?.let { userId ->
-                                            database.userInfoDao().insertUserInfo(UserInfo(userId = userId, dept = 0.0))
+                                            // SỬA: Khởi tạo dept trong UserInfo
+                                            database.userInfoDao().insertUserInfo(UserInfo(userId = userId, debt = 0.0))
                                         }
 
                                         Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
@@ -221,7 +221,7 @@ fun RegisterScreen(
                     modifier = Modifier.clickable { onNavigateToLogin() }
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(48.dp))
             FooterLegal()
         }

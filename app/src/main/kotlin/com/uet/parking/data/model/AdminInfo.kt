@@ -6,19 +6,19 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "admin_info",
+    tableName = "adminInfo",
     foreignKeys = [
         ForeignKey(
             entity = User::class,
             parentColumns = ["userId"],
             childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.NO_ACTION
         ),
         ForeignKey(
             entity = ParkingLot::class,
             parentColumns = ["parkingId"],
             childColumns = ["parkingId"],
-            onDelete = ForeignKey.SET_NULL
+            onDelete = ForeignKey.NO_ACTION
         )
     ]
 )
@@ -30,6 +30,6 @@ data class AdminInfo(
     @ColumnInfo(name = "parkingId")
     val parkingId: Int? = null,
 
-    @ColumnInfo(name = "kpi")
-    val kpi: Double? = 0.0
+    @ColumnInfo(name = "kpi", defaultValue = "0")
+    val kpi: Int = 0
 )

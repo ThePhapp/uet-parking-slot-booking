@@ -7,6 +7,7 @@ import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.data.repository.ParkingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -79,12 +80,17 @@ class ParkingLotDetailViewModel(
                     refreshLotData()
                 }
                 TicketStatus.IN_PROGRESS -> {
-                    // 1. Tính tiền và cộng vào nợ của User
+                    // 1. Lấy thông tin User kèm Profile (chứa debt trong info)
                     ticket.userId?.let { userId ->
-                        val user = repository.getUserByIdSuspend(userId)
-                        user?.let {
-                            val currentDebt = it.debt ?: 0.0
-                            val ticketPrice = ticket.price ?: 0.0
+                        // Sử dụng Flow để lấy UserWithProfile và lấy giá trị đầu tiên
+                        val userWithProfile = repository.getUserWithProfile(userId).firstOrNull()
+
+                        userWithProfile?.let { profile ->
+                            // Lấy nợ hiện tại từ bảng UserInfo (info)
+                            val currentDebt = profile.info?.debt ?: 0.0
+                            val ticketPrice = ticket.price ?: 10000.0
+
+                            // Cập nhật nợ mới vào bảng UserInfo
                             repository.updateDebt(userId, currentDebt + ticketPrice)
                         }
                     }
