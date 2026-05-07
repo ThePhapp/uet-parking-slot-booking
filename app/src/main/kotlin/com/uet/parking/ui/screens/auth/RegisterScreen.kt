@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.User
+import com.uet.parking.data.model.UserInfo
 import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
@@ -180,6 +181,13 @@ fun RegisterScreen(
                                             debt = 0.0
                                         )
                                         database.userDao().insertUser(newUser)
+                                        
+                                        // Sau khi insert user, lấy lại ID vừa tạo để insert vào bảng Info (Luôn là USER)
+                                        val createdUser = database.userDao().getUserByEmail(trimmedEmail)
+                                        createdUser?.userId?.let { userId ->
+                                            database.userInfoDao().insertUserInfo(UserInfo(userId = userId, dept = 0.0))
+                                        }
+
                                         Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
                                         onRegisterSuccess()
                                     }

@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TicketDao {
+    @Query("SELECT * FROM ticket")
+    fun getAllTickets(): Flow<List<Ticket>>
+
     @Query("SELECT * FROM ticket WHERE userId = :userId")
     fun getTicketsByUserId(userId: Int): Flow<List<Ticket>>
 
