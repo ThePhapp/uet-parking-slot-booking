@@ -1,6 +1,5 @@
 package com.uet.parking.ui.screens.home
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +21,7 @@ import java.util.Locale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.uet.parking.ui.viewmodel.HomeViewModel
 
+
 data class EventUiModel(
     val title: String,
     val location: String,
@@ -35,11 +35,8 @@ fun HomeScreen(
     onBookNow: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
-    var showPaymentResult by remember { mutableStateOf(false) }
-    var isPaymentSuccess by remember { mutableStateOf(false) }
-
-    val mockStudentBalance = 0.0 // Giả lập số dư ví
     val userWithProfile by viewModel.userProfile.collectAsState()
+    val paymentUiState by viewModel.paymentUiState.collectAsState()
 
     val events = listOf(
         EventUiModel(
@@ -92,15 +89,8 @@ fun HomeScreen(
                 userWithProfile?.let { data ->
                     val user = data.user
                     val info = data.info
-                    Log.d("DEBUG_HOME", "User ID: ${user.userId}")
-                    Log.d("DEBUG_HOME", "UserInfo Object: $info")
-                    if (info != null) {
-                        Log.d("DEBUG_HOME", "Debt value từ DB: ${info.debt}")
-                    } else {
-                        Log.e("DEBUG_HOME", "UserInfo bị NULL! Kiểm tra lại bảng user_info trong DB")
-                    }
                     // SỬA: Đổi dept thành debt và mặc định là 0.0
-                    val rawDebt = info?.debt ?: 10000.0
+                    val rawDebt = info?.debt ?: 0.0
 
                     val formattedDebt = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
                         .format(rawDebt)
@@ -113,8 +103,7 @@ fun HomeScreen(
                         cardType = "Sinh Viên",
                         studentCode = studentCode,
                         onPaymentClick = {
-                            isPaymentSuccess = mockStudentBalance >= rawDebt
-                            showPaymentResult = true
+                            viewModel.payDebt(rawDebt)
                         }
                     )
                 }
@@ -131,21 +120,31 @@ fun HomeScreen(
             item { Spacer(modifier = Modifier.height(12.dp)) }
         }
 
-        if (showPaymentResult) {
-            val rawDebt = userWithProfile?.info?.debt ?: 0.0
+        if (paymentUiState.showDialog) {
             AlertDialog(
-                onDismissRequest = { showPaymentResult = false },
+                onDismissRequest = {
+                    viewModel.dismissPaymentDialog()
+                },
                 confirmButton = {
-                    TextButton(onClick = { showPaymentResult = false }) {
+                    TextButton(
+                        onClick = {
+                            viewModel.dismissPaymentDialog()
+                        }
+                    ) {
                         Text("Đóng")
                     }
                 },
-                title = { Text(if (isPaymentSuccess) "Thanh toán thành công" else "Thanh toán thất bại") },
-                text = {
+                title = {
                     Text(
-                        if (isPaymentSuccess) "Bạn đã thanh toán khoản nợ ${NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(rawDebt)}."
-                        else "Số dư tài khoản không đủ để thanh toán khoản nợ ${NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(rawDebt)}."
+                        text = if (paymentUiState.isSuccess) {
+                            "Thanh toán thành công"
+                        } else {
+                            "Thanh toán thất bại"
+                        }
                     )
+                },
+                text = {
+                    Text(text = paymentUiState.message)
                 }
             )
         }
