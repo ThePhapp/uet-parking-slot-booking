@@ -18,12 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.enums.UserRole
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.components.common.AppBottomNavigationBar
 import com.uet.parking.ui.components.common.AppTopBar
 import com.uet.parking.ui.screens.admin.AdminHomepage
@@ -36,6 +39,8 @@ import com.uet.parking.ui.screens.booking.SearchingScreen
 import com.uet.parking.ui.screens.booking.SuccessScreen
 import com.uet.parking.ui.screens.booking.TicketScreen
 import com.uet.parking.ui.theme.ParkingTheme
+import com.uet.parking.ui.viewmodel.HomeViewModel
+import com.uet.parking.ui.viewmodel.HomeViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,11 +59,22 @@ fun MainNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Biến cờ (flag) xác định vai trò người dùng sau khi đăng nhập
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val database = remember { AppDatabase.getDatabase(context) }
+    val repository = remember {
+        ParkingRepository(
+            database.userDao(),
+            database.ticketDao(),
+            database.parkingLotDao(),
+            database.hourlyLoadDao(),
+            database.userInfoDao(),
+            database.adminInfoDao()
+        )
+    }
+
     var userRole by remember { mutableStateOf<UserRole?>(null) }
     var currentUserId by remember { mutableStateOf<Int?>(null) }
-    
-    // Logic nhận diện role dựa trên màn hình hiện tại (để giữ trạng thái khi xoay màn hình...)
+
     LaunchedEffect(currentRoute) {
         if (currentRoute == "auth") {
             userRole = null
@@ -87,10 +103,10 @@ fun MainNavigation() {
                         currentRoute == "admin_booking" -> "Lịch trình đặt chỗ"
                         else -> "Campus Parking"
                     },
-                    showBack = currentRoute?.startsWith("admin_detail") == true || 
-                              currentRoute in listOf("tickets", "booking", "searching", "success"),
+                    showBack = currentRoute?.startsWith("admin_detail") == true ||
+                            currentRoute in listOf("tickets", "booking", "searching", "success"),
                     onBackClick = { navController.popBackStack() },
-                    onHomeClick = { 
+                    onHomeClick = {
                         val homeRoute = if (isAdmin) "admin_home" else "home"
                         navController.navigate(homeRoute) {
                             popUpTo(homeRoute) { inclusive = true }
@@ -132,7 +148,7 @@ fun MainNavigation() {
                                 else -> "home"
                             }
                         }
-                        
+
                         navController.navigate(target) {
                             val popUpTarget = if (isAdmin) "admin_home" else "home"
                             popUpTo(popUpTarget) { inclusive = (target == popUpTarget) }
@@ -157,36 +173,33 @@ fun MainNavigation() {
                     }
                 })
             }
-            
-            // --- User Routes ---
+
             composable("home") {
+                val userId = currentUserId ?: 0
+                val homeViewModel: HomeViewModel = viewModel(
+                    factory = HomeViewModelFactory(repository, userId)
+                )
                 HomeScreen(
-                    userId = currentUserId ?: 0,
-
-                    onBookNow = {
-                        navController.navigate("booking") {
-                            launchSingleTop = true
-                        }
-                    },
-
+                    viewModel = homeViewModel,
+                    onBookNow = { navController.navigate("booking") },
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }
-            composable("booking") { 
+            composable("booking") {
                 BookingFormScreen(
                     userId = currentUserId ?: 0,
                     onContinue = { _, _, _ -> navController.navigate("searching") }
-                ) 
+                )
             }
             composable("searching") { SearchingScreen(onNavigateToSuccess = { navController.navigate("success") { popUpTo("booking") { inclusive = true } } }) }
-            composable("success") { 
+            composable("success") {
                 SuccessScreen(
                     userId = currentUserId ?: 0,
                     onGoHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } }
-                ) 
+                )
             }
-            composable("tickets") { 
-                TicketScreen(userId = currentUserId ?: 0) 
+            composable("tickets") {
+                TicketScreen(userId = currentUserId ?: 0)
             }
             composable("settings") {
                 SettingsScreen(
@@ -198,9 +211,13 @@ fun MainNavigation() {
 
             // --- Admin Routes ---
             composable("admin_home") {
-                AdminHomepage(onNavigateToDetail = { id ->
-                    navController.navigate("admin_detail/$id")
-                })
+                // Truyền currentUserId vào AdminHomepage
+                AdminHomepage(
+                    userId = currentUserId ?: 0,
+                    onNavigateToDetail = { id ->
+                        navController.navigate("admin_detail/$id")
+                    }
+                )
             }
             composable("admin_detail/{lotId}") { backStackEntry ->
                 val lotId = backStackEntry.arguments?.getString("lotId")?.toIntOrNull() ?: 0
