@@ -5,16 +5,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.components.DebtCard
 import com.uet.parking.ui.components.EventCard
 import com.uet.parking.ui.theme.BackgroundGray
@@ -22,8 +19,6 @@ import com.uet.parking.ui.theme.PrimaryBlue
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import com.uet.parking.ui.viewmodel.HomeViewModel
 
 data class EventUiModel(
@@ -43,9 +38,6 @@ fun HomeScreen(
     var isPaymentSuccess by remember { mutableStateOf(false) }
 
     val mockStudentBalance = 50000.0
-    val context = LocalContext.current
-    val database = remember { AppDatabase.getDatabase(context) }
-    val user by database.userDao().getUserById(userId).collectAsState(initial = null)
     val userWithProfile by viewModel.userProfile.collectAsState()
 
     val events = listOf(
@@ -65,18 +57,6 @@ fun HomeScreen(
         )
     )
 
-    if (showPaymentResult) {
-        PaymentResultScreen(
-            isSuccess = isPaymentSuccess,
-            debtAmount = user?.debt ?: 0.0,
-            currentBalance = mockStudentBalance,
-            onBackHome = {
-                showPaymentResult = false
-            }
-        )
-        return
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -87,6 +67,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Nút Đặt xe
             item {
                 Button(
                     onClick = onBookNow,
@@ -94,9 +75,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .height(52.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryBlue
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                 ) {
                     Text(
                         text = "Đặt xe",
@@ -107,37 +86,36 @@ fun HomeScreen(
                 }
             }
 
+            // Thẻ Nợ (DebtCard)
             item {
-                val user = userWithProfile?.user
-                val rawDebt = user?.debt ?: 0.0
-                val deptValue = userWithProfile?.info?.dept
+                userWithProfile?.let { data ->
+                    val user = data.user
+                    val info = data.info
 
-                val formattedDebt = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
-                    .format(rawDebt)
+                    val rawDebt = user.debt ?: 0.0
+                    val formattedDebt = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
+                        .format(rawDebt)
 
-                DebtCard(
-                    debt = formattedDebt,
-                    cardType = if (user?.role == UserRole.ADMIN) {
-                        "Quản trị viên"
-                    } else {
-                        "Sinh Viên"
-                    },
-                    studentCode = user?.email?.substringBefore("@")?.uppercase() ?: "---",
-                    onPaymentClick = {
-                        val currentDebt = user?.debt ?: 0.0
-                        isPaymentSuccess = mockStudentBalance >= currentDebt
-                        showPaymentResult = true
-                    // Hiển thị khoa (dept) từ bảng userInfo nếu có (>0), nếu không thì dùng mã SV từ email
-                    studentCode = if (deptValue != null && deptValue > 0.0) {
-                        deptValue.toInt().toString()
-                    } else {
-                        user?.email?.substringBefore("@")?.uppercase() ?: "---"
-                    }
-                )
+                    // Logic: Lấy Mã SV từ email, Dept lấy từ bảng info
+                    val studentCode = user.email?.substringBefore("@")?.uppercase() ?: "---"
+                    val department = info?.dept ?: "N/A"
+
+                    DebtCard(
+                        debt = formattedDebt,
+                        cardType = "Sinh Viên", // Fix cứng vì đây là màn hình User
+                        studentCode = studentCode,
+                        onPaymentClick = {
+                            isPaymentSuccess = mockStudentBalance >= rawDebt
+                            showPaymentResult = true
+                        }
+                    )
+                }
             }
 
+            // Tiêu đề sự kiện
             item { HomeSectionHeader() }
 
+            // Danh sách sự kiện
             items(events) { event ->
                 EventCard(event = event)
             }
