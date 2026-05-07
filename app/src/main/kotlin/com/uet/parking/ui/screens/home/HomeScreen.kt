@@ -8,15 +8,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.components.DebtCard
 import com.uet.parking.ui.components.EventCard
@@ -25,6 +22,7 @@ import com.uet.parking.ui.theme.PrimaryBlue
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.uet.parking.ui.viewmodel.HomeViewModel
 
 data class EventUiModel(
     val title: String,
@@ -35,13 +33,11 @@ data class EventUiModel(
 
 @Composable
 fun HomeScreen(
-    userId: Int,
+    viewModel: HomeViewModel,
     onBookNow: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val database = remember { AppDatabase.getDatabase(context) }
-    val user by database.userDao().getUserById(userId).collectAsState(initial = null)
+    val userWithProfile by viewModel.userProfile.collectAsState()
 
     val events = listOf(
         EventUiModel(
@@ -91,19 +87,26 @@ fun HomeScreen(
             }
 
             item {
+                val user = userWithProfile?.user
                 val rawDebt = user?.debt ?: 0.0
+                val deptValue = userWithProfile?.info?.dept
 
                 val formattedDebt = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
                     .format(rawDebt)
 
                 DebtCard(
                     debt = formattedDebt,
-                    cardType = if (user?.role?.lowercase() == "admin") {
+                    cardType = if (user?.role == UserRole.ADMIN) {
                         "Quản trị viên"
                     } else {
                         "Sinh Viên"
                     },
-                    studentCode = user?.email?.substringBefore("@")?.uppercase() ?: "---"
+                    // Hiển thị khoa (dept) từ bảng userInfo nếu có (>0), nếu không thì dùng mã SV từ email
+                    studentCode = if (deptValue != null && deptValue > 0.0) {
+                        deptValue.toInt().toString()
+                    } else {
+                        user?.email?.substringBefore("@")?.uppercase() ?: "---"
+                    }
                 )
             }
 
