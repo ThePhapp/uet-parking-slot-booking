@@ -40,6 +40,7 @@ class ParkingRepository(
     // Ticket
     fun getAllTickets(): Flow<List<Ticket>> = ticketDao.getAllTickets()
     suspend fun getTicketById(ticketId: Int): Ticket? = ticketDao.getTicketById(ticketId)
+    suspend fun insertTicket(ticket: Ticket) = ticketDao.insertTicket(ticket)
     suspend fun updateTicketStatus(ticketId: Int, status: String) = ticketDao.updateTicketStatus(ticketId, status)
     suspend fun deleteTicket(ticket: Ticket) = ticketDao.deleteTicket(ticket)
 

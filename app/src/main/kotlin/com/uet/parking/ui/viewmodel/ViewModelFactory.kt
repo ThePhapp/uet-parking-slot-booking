@@ -18,6 +18,10 @@ class ViewModelFactory(
                 @Suppress("UNCHECKED_CAST")
                 AdminBookingViewModel(repository) as T
             }
+            modelClass.isAssignableFrom(BookingViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                BookingViewModel(repository, userId) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
