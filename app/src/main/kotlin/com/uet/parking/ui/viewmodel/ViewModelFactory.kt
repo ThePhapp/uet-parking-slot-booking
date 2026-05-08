@@ -23,19 +23,6 @@ class ViewModelFactory(
     }
 }
 
-class HomeViewModelFactory(
-    private val repository: ParkingRepository,
-    private val userId: Int
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(repository, userId) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}
-
 class ParkingLotDetailViewModelFactory(
     private val repository: ParkingRepository,
     private val lotId: Int
