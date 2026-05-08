@@ -5,24 +5,22 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.ui.components.DebtCard
 import com.uet.parking.ui.components.EventCard
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.uet.parking.ui.viewmodel.HomeViewModel
+
 
 data class EventUiModel(
     val title: String,
@@ -33,17 +31,16 @@ data class EventUiModel(
 
 @Composable
 fun HomeScreen(
-    userId: Int,
+    viewModel: HomeViewModel,
     onBookNow: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val database = remember { AppDatabase.getDatabase(context) }
-    val user by database.userDao().getUserById(userId).collectAsState(initial = null)
+    val userWithProfile by viewModel.userProfile.collectAsState()
+    val paymentUiState by viewModel.paymentUiState.collectAsState()
 
     val events = listOf(
         EventUiModel(
-            title = "Hội thảo Công nghệ Blockchain trong Giáo dục 2024",
+            title = "Hội thảo Công nghệ Blockchain trong Giáo dục 2026",
             location = "Giảng đường A1",
             time = "14:00 - 20/10",
             featured = true
@@ -68,26 +65,88 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Nút Đặt xe
             item {
-                // Định dạng hiển thị nợ phí
-                val rawDebt = user?.debt ?: 0.0
-                val formattedDebt = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
-                    .format(rawDebt)
-                
-                DebtCard(
-                    debt = formattedDebt,
-                    cardType = if (user?.role == "admin") "Quản trị viên" else "Sinh Viên",
-                    studentCode = user?.email?.substringBefore("@")?.uppercase() ?: "---"
-                )
+                Button(
+                    onClick = onBookNow,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                ) {
+                    Text(
+                        text = "Đặt xe",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
+            // Thẻ Nợ (DebtCard)
+            item {
+                userWithProfile?.let { data ->
+                    val user = data.user
+                    val info = data.info
+                    // SỬA: Đổi dept thành debt và mặc định là 0.0
+                    val rawDebt = info?.debt ?: 0.0
+
+                    val formattedDebt = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
+                        .format(rawDebt)
+
+                    // Email là non-null nên không cần safe call
+                    val studentCode = user.email.substringBefore("@").uppercase()
+
+                    DebtCard(
+                        debt = formattedDebt,
+                        cardType = "Sinh Viên",
+                        studentCode = studentCode,
+                        onPaymentClick = {
+                            viewModel.payDebt(rawDebt)
+                        }
+                    )
+                }
+            }
+
+            // Tiêu đề sự kiện
             item { HomeSectionHeader() }
 
+            // Danh sách sự kiện
             items(events) { event ->
                 EventCard(event = event)
             }
 
             item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
+
+        if (paymentUiState.showDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    viewModel.dismissPaymentDialog()
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.dismissPaymentDialog()
+                        }
+                    ) {
+                        Text("Đóng")
+                    }
+                },
+                title = {
+                    Text(
+                        text = if (paymentUiState.isSuccess) {
+                            "Thanh toán thành công"
+                        } else {
+                            "Thanh toán thất bại"
+                        }
+                    )
+                },
+                text = {
+                    Text(text = paymentUiState.message)
+                }
+            )
         }
     }
 }

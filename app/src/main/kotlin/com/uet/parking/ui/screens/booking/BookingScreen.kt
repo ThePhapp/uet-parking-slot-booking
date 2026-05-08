@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.HourlyLoad
 import com.uet.parking.data.model.Ticket
+import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import kotlinx.coroutines.flow.first
@@ -187,7 +188,7 @@ fun BookingFormScreen(
                                 parkingId = 1,
                                 startTime = "$selectedDate $selectedStartTime",
                                 endTime = "$selectedDate $selectedEndTime",
-                                status = "Pending",
+                                status = TicketStatus.PENDING,
                                 price = 10000.0
                             )
                             

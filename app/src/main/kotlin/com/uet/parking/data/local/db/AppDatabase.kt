@@ -4,10 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.uet.parking.data.local.dao.ParkingLotDao
-import com.uet.parking.data.local.dao.TicketDao
-import com.uet.parking.data.local.dao.UserDao
-import com.uet.parking.data.local.dao.HourlyLoadDao
+import androidx.room.TypeConverters
+import com.uet.parking.data.local.dao.*
 import com.uet.parking.data.model.*
 
 @Database(
@@ -17,17 +15,22 @@ import com.uet.parking.data.model.*
         HourlyLoad::class,
         Payment::class,
         Ticket::class,
-        Schedule::class
+        Schedule::class,
+        UserInfo::class,
+        AdminInfo::class
     ],
     version = 1,
     exportSchema = false
 )
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao
     abstract fun parkingLotDao(): ParkingLotDao
     abstract fun ticketDao(): TicketDao
     abstract fun hourlyLoadDao(): HourlyLoadDao
+    abstract fun userInfoDao(): UserInfoDao
+    abstract fun adminInfoDao(): AdminInfoDao
 
     companion object {
         @Volatile
