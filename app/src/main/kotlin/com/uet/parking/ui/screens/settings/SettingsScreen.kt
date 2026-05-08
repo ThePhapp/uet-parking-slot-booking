@@ -26,20 +26,23 @@ import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.User
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
+import com.uet.parking.ui.viewmodel.SettingsViewModel
 
 @Composable
-fun SettingsScreen(userId: Int, onBackClick: () -> Unit = {}, onLogoutClick: () -> Unit = {}) {
-    val context = LocalContext.current
-    val database = remember { AppDatabase.getDatabase(context) }
-    val user by database.userDao().getUserById(userId).collectAsState(initial = null)
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    onBackClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
+) {
+    val user by viewModel.user.collectAsState(initial = null)
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundGray)
     ) {
-        val maxWidth = maxWidth
-        val horizontalPadding = if (maxWidth > 800.dp) (maxWidth - 800.dp) / 2 + 24.dp else 24.dp
+        val screenWidth = this.maxWidth
+        val horizontalPadding = if (screenWidth > 800.dp) (screenWidth - 800.dp) / 2 + 24.dp else 24.dp
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -91,7 +94,10 @@ fun SettingsScreen(userId: Int, onBackClick: () -> Unit = {}, onLogoutClick: () 
                             title = "Đăng xuất",
                             titleColor = Color(0xFFBA1A1A),
                             showChevron = false,
-                            onClick = onLogoutClick
+                            onClick = {
+                                viewModel.logout()
+                                onLogoutClick()
+                            }
                         )
                     }
                 }

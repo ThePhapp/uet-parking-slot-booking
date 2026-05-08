@@ -18,11 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.uet.parking.data.local.db.AppDatabase
+import com.uet.parking.data.model.enums.UserRole
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.components.common.AppBottomNavigationBar
 import com.uet.parking.ui.components.common.AppTopBar
 import com.uet.parking.ui.screens.admin.AdminHomepage
@@ -35,6 +39,26 @@ import com.uet.parking.ui.screens.booking.SearchingScreen
 import com.uet.parking.ui.screens.booking.SuccessScreen
 import com.uet.parking.ui.screens.booking.TicketScreen
 import com.uet.parking.ui.theme.ParkingTheme
+import com.uet.parking.ui.viewmodel.AuthViewModel
+import com.uet.parking.ui.viewmodel.AuthViewModelFactory
+import com.uet.parking.ui.viewmodel.HomeViewModel
+import com.uet.parking.ui.viewmodel.HomeViewModelFactory
+import com.uet.parking.ui.viewmodel.SettingsViewModel
+import com.uet.parking.ui.viewmodel.ViewModelFactory
+
+enum class Screen(val route: String) {
+    AUTH("auth"),
+    HOME("home"),
+    BOOKING("booking"),
+    SEARCHING("searching"),
+    SUCCESS("success"),
+    TICKETS("tickets"),
+    SETTINGS("settings"),
+    ADMIN_HOME("admin_home"),
+    ADMIN_DETAIL("admin_detail/{lotId}"),
+    ADMIN_BOOKING("admin_booking"),
+    ADMIN_SETTINGS("admin_settings")
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,44 +77,55 @@ fun MainNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Biến cờ (flag) xác định vai trò người dùng sau khi đăng nhập
-    var userRole by remember { mutableStateOf<String?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val database = remember { AppDatabase.getDatabase(context) }
+    val repository = remember {
+        ParkingRepository(
+            database.userDao(),
+            database.ticketDao(),
+            database.parkingLotDao(),
+            database.hourlyLoadDao(),
+            database.userInfoDao(),
+            database.adminInfoDao()
+        )
+    }
+
+    var userRole by remember { mutableStateOf<UserRole?>(null) }
     var currentUserId by remember { mutableStateOf<Int?>(null) }
-    
-    // Logic nhận diện role dựa trên màn hình hiện tại (để giữ trạng thái khi xoay màn hình...)
+
     LaunchedEffect(currentRoute) {
-        if (currentRoute == "auth") {
+        if (currentRoute == Screen.AUTH.route) {
             userRole = null
             currentUserId = null
         }
-        else if (currentRoute?.startsWith("admin") == true) userRole = "admin"
-        else if (currentRoute in listOf("home", "booking", "tickets", "settings")) userRole = "user"
+        else if (currentRoute?.startsWith("admin") == true) userRole = UserRole.ADMIN
+        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route)) userRole = UserRole.USER
     }
 
-    val isAdmin = userRole == "admin"
-    val isUser = userRole == "user"
+    val isAdmin = userRole == UserRole.ADMIN
+    val isUser = userRole == UserRole.USER
 
     Scaffold(
         topBar = {
-            if (currentRoute != "auth") {
+            if (currentRoute != Screen.AUTH.route) {
                 AppTopBar(
                     title = when {
-                        currentRoute == "home" -> "Trang chủ"
-                        currentRoute == "booking" -> "Đặt chỗ"
-                        currentRoute == "searching" -> "Đang tìm kiếm"
-                        currentRoute == "success" -> "Thành công"
-                        currentRoute == "tickets" -> "Vé của tôi"
-                        currentRoute == "settings" || currentRoute == "admin_settings" -> "Cài đặt"
-                        currentRoute == "admin_home" -> "Quản trị bãi đỗ"
+                        currentRoute == Screen.HOME.route -> "Trang chủ"
+                        currentRoute == Screen.BOOKING.route -> "Đặt chỗ"
+                        currentRoute == Screen.SEARCHING.route -> "Đang tìm kiếm"
+                        currentRoute == Screen.SUCCESS.route -> "Thành công"
+                        currentRoute == Screen.TICKETS.route -> "Vé của tôi"
+                        currentRoute == Screen.SETTINGS.route || currentRoute == Screen.ADMIN_SETTINGS.route -> "Cài đặt"
+                        currentRoute == Screen.ADMIN_HOME.route -> "Quản trị bãi đỗ"
                         currentRoute?.startsWith("admin_detail") == true -> "Chi tiết bãi đỗ"
-                        currentRoute == "admin_booking" -> "Lịch trình đặt chỗ"
+                        currentRoute == Screen.ADMIN_BOOKING.route -> "Lịch trình đặt chỗ"
                         else -> "Campus Parking"
                     },
-                    showBack = currentRoute?.startsWith("admin_detail") == true || 
-                              currentRoute in listOf("tickets", "booking", "searching", "success"),
+                    showBack = currentRoute?.startsWith("admin_detail") == true ||
+                            currentRoute in listOf(Screen.TICKETS.route, Screen.BOOKING.route, Screen.SEARCHING.route, Screen.SUCCESS.route),
                     onBackClick = { navController.popBackStack() },
-                    onHomeClick = { 
-                        val homeRoute = if (isAdmin) "admin_home" else "home"
+                    onHomeClick = {
+                        val homeRoute = if (isAdmin) Screen.ADMIN_HOME.route else Screen.HOME.route
                         navController.navigate(homeRoute) {
                             popUpTo(homeRoute) { inclusive = true }
                         }
@@ -108,32 +143,32 @@ fun MainNavigation() {
                 AppBottomNavigationBar(
                     isAdmin = isAdmin,
                     selectedIndex = when (currentRoute) {
-                        "home", "admin_home" -> 0
-                        "booking", "admin_booking" -> 1
-                        "tickets" -> 2
-                        "settings", "admin_settings" -> if (isAdmin) 2 else 3
+                        Screen.HOME.route, Screen.ADMIN_HOME.route -> 0
+                        Screen.BOOKING.route, Screen.ADMIN_BOOKING.route -> 1
+                        Screen.TICKETS.route -> 2
+                        Screen.SETTINGS.route, Screen.ADMIN_SETTINGS.route -> if (isAdmin) 2 else 3
                         else -> 0
                     },
                     onItemSelected = { index ->
                         val target = if (isAdmin) {
                             when (index) {
-                                0 -> "admin_home"
-                                1 -> "admin_booking"
-                                2 -> "admin_settings"
-                                else -> "admin_home"
+                                0 -> Screen.ADMIN_HOME.route
+                                1 -> Screen.ADMIN_BOOKING.route
+                                2 -> Screen.ADMIN_SETTINGS.route
+                                else -> Screen.ADMIN_HOME.route
                             }
                         } else {
                             when (index) {
-                                0 -> "home"
-                                1 -> "booking"
-                                2 -> "tickets"
-                                3 -> "settings"
-                                else -> "home"
+                                0 -> Screen.HOME.route
+                                1 -> Screen.BOOKING.route
+                                2 -> Screen.TICKETS.route
+                                3 -> Screen.SETTINGS.route
+                                else -> Screen.HOME.route
                             }
                         }
-                        
+
                         navController.navigate(target) {
-                            val popUpTarget = if (isAdmin) "admin_home" else "home"
+                            val popUpTarget = if (isAdmin) Screen.ADMIN_HOME.route else Screen.HOME.route
                             popUpTo(popUpTarget) { inclusive = (target == popUpTarget) }
                         }
                     }
@@ -143,67 +178,88 @@ fun MainNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "auth",
+            startDestination = Screen.AUTH.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("auth") {
-                AuthScreen(onLoginSuccess = { userId, role ->
-                    currentUserId = userId
-                    userRole = role
-                    val startRoute = if (role == "admin") "admin_home" else "home"
-                    navController.navigate(startRoute) {
-                        popUpTo("auth") { inclusive = true }
+            composable(Screen.AUTH.route) {
+                val authViewModel: AuthViewModel = viewModel(
+                    factory = AuthViewModelFactory(repository)
+                )
+                AuthScreen(
+                    viewModel = authViewModel,
+                    onLoginSuccess = { userId, role ->
+                        currentUserId = userId
+                        userRole = role
+                        val startRoute = if (role == UserRole.ADMIN) Screen.ADMIN_HOME.route else Screen.HOME.route
+                        navController.navigate(startRoute) {
+                            popUpTo(Screen.AUTH.route) { inclusive = true }
+                        }
                     }
-                })
+                )
             }
-            
-            // --- User Routes ---
-            composable("home") { 
+
+            composable(Screen.HOME.route) {
+                val userId = currentUserId ?: 0
+                val homeViewModel: HomeViewModel = viewModel(
+                    factory = HomeViewModelFactory(repository, userId)
+                )
                 HomeScreen(
-                    userId = currentUserId ?: 0,
-                    onSettingsClick = { navController.navigate("settings") }
-                ) 
+                    viewModel = homeViewModel,
+                    onBookNow = { navController.navigate(Screen.BOOKING.route) },
+                    onSettingsClick = { navController.navigate(Screen.SETTINGS.route) }
+                )
             }
-            composable("booking") { 
+            composable(Screen.BOOKING.route) {
                 BookingFormScreen(
                     userId = currentUserId ?: 0,
-                    onContinue = { _, _, _ -> navController.navigate("searching") }
-                ) 
+                    onContinue = { _, _, _ -> navController.navigate(Screen.SEARCHING.route) }
+                )
             }
-            composable("searching") { SearchingScreen(onNavigateToSuccess = { navController.navigate("success") { popUpTo("booking") { inclusive = true } } }) }
-            composable("success") { 
+            composable(Screen.SEARCHING.route) { SearchingScreen(onNavigateToSuccess = { navController.navigate(Screen.SUCCESS.route) { popUpTo(Screen.BOOKING.route) { inclusive = true } } }) }
+            composable(Screen.SUCCESS.route) {
                 SuccessScreen(
                     userId = currentUserId ?: 0,
-                    onGoHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } }
-                ) 
+                    onGoHome = { navController.navigate(Screen.HOME.route) { popUpTo(Screen.HOME.route) { inclusive = true } } }
+                )
             }
-            composable("tickets") { 
-                TicketScreen(userId = currentUserId ?: 0) 
+            composable(Screen.TICKETS.route) {
+                TicketScreen(userId = currentUserId ?: 0)
             }
-            composable("settings") {
+            composable(Screen.SETTINGS.route) {
+                val userId = currentUserId ?: 0
+                val settingsViewModel: SettingsViewModel = viewModel(
+                    factory = ViewModelFactory(repository, userId)
+                )
                 SettingsScreen(
-                    userId = currentUserId ?: 0,
+                    viewModel = settingsViewModel,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = { navController.navigate("auth") { popUpTo(0) } }
+                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(0) } }
                 )
             }
 
             // --- Admin Routes ---
-            composable("admin_home") {
-                AdminHomepage(onNavigateToDetail = { id ->
-                    navController.navigate("admin_detail/$id")
-                })
+            composable(Screen.ADMIN_HOME.route) {
+                AdminHomepage(
+                    userId = currentUserId ?: 0,
+                    onNavigateToDetail = { id ->
+                        navController.navigate(Screen.ADMIN_DETAIL.route.replace("{lotId}", id.toString()))
+                    }
+                )
             }
-            composable("admin_detail/{lotId}") { backStackEntry ->
+            composable(Screen.ADMIN_DETAIL.route) { backStackEntry ->
                 val lotId = backStackEntry.arguments?.getString("lotId")?.toIntOrNull() ?: 0
                 ParkingLotDetailPage(lotId = lotId, onBack = { navController.popBackStack() })
             }
-            composable("admin_booking") { PlaceholderScreen("Lịch trình đặt chỗ (Trống)") }
-            composable("admin_settings") {
+            composable(Screen.ADMIN_BOOKING.route) { PlaceholderScreen("Lịch trình đặt chỗ (Trống)") }
+            composable(Screen.ADMIN_SETTINGS.route) {
+                val userId = currentUserId ?: 0
+                val settingsViewModel: SettingsViewModel = viewModel(
+                    factory = ViewModelFactory(repository, userId)
+                )
                 SettingsScreen(
-                    userId = currentUserId ?: 0,
+                    viewModel = settingsViewModel,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = { navController.navigate("auth") { popUpTo(0) } }
+                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(0) } }
                 )
             }
         }
