@@ -10,12 +10,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-// UI State untuk Booking Form
+// UI State for Booking Form
 data class BookingUiState(
     val isLoading: Boolean = false,
     val errorMessage: String = "",
@@ -35,7 +36,7 @@ class BookingViewModel(
     val parkingLots: StateFlow<List<ParkingLot>> = repository.getAllParkingLots()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Available Time Slots (mock data - có thể mở rộng từ database sau)
+    // Available Time Slots (định nghĩa các ca làm việc)
     val startTimeSlots: StateFlow<List<Pair<String, String>>> = MutableStateFlow(
         listOf(
             "Ca 1 — 07:00" to "07:00",
@@ -58,12 +59,13 @@ class BookingViewModel(
     private val _bookingUiState = MutableStateFlow(BookingUiState())
     val bookingUiState: StateFlow<BookingUiState> = _bookingUiState.asStateFlow()
 
-    // User's Tickets
+    // User's Tickets (từ database)
     val userTickets: StateFlow<List<Ticket>> = repository.getAllTickets()
+        .map { tickets -> tickets.filter { it.userId == userId } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /**
-     * Update selected parking lot
+     * Select parking lot
      */
     fun selectParkingLot(parkingLot: ParkingLot) {
         _bookingUiState.value = _bookingUiState.value.copy(
@@ -73,7 +75,7 @@ class BookingViewModel(
     }
 
     /**
-     * Update selected date
+     * Select date (format: dd/MM/yyyy)
      */
     fun selectDate(date: String) {
         _bookingUiState.value = _bookingUiState.value.copy(
@@ -83,7 +85,7 @@ class BookingViewModel(
     }
 
     /**
-     * Update selected start time
+     * Select start time (format: HH:mm)
      */
     fun selectStartTime(time: String) {
         _bookingUiState.value = _bookingUiState.value.copy(
@@ -93,7 +95,7 @@ class BookingViewModel(
     }
 
     /**
-     * Update selected end time
+     * Select end time (format: HH:mm)
      */
     fun selectEndTime(time: String) {
         _bookingUiState.value = _bookingUiState.value.copy(
@@ -103,38 +105,17 @@ class BookingViewModel(
     }
 
     /**
-     * Create a new booking
+     * Create new booking and save to database
+     * Returns true if successful, false if there's an error
      */
-    fun createBooking(): Boolean {
+    fun createBooking(onSuccess: () -> Unit = {}) {
         val currentState = _bookingUiState.value
 
         // Validation
-        if (currentState.selectedParkingLot == null) {
-            _bookingUiState.value = currentState.copy(
-                errorMessage = "Vui lòng chọn bãi đỗ"
-            )
-            return false
-        }
-
-        if (currentState.selectedDate.isEmpty()) {
-            _bookingUiState.value = currentState.copy(
-                errorMessage = "Vui lòng chọn ngày"
-            )
-            return false
-        }
-
-        if (currentState.selectedStartTime.isEmpty()) {
-            _bookingUiState.value = currentState.copy(
-                errorMessage = "Vui lòng chọn giờ bắt đầu"
-            )
-            return false
-        }
-
-        if (currentState.selectedEndTime.isEmpty()) {
-            _bookingUiState.value = currentState.copy(
-                errorMessage = "Vui lòng chọn giờ kết thúc"
-            )
-            return false
+        val validationError = validateBooking(currentState)
+        if (validationError.isNotEmpty()) {
+            _bookingUiState.value = currentState.copy(errorMessage = validationError)
+            return
         }
 
         // Create datetime strings
@@ -142,55 +123,87 @@ class BookingViewModel(
         val startDateTime = "${currentState.selectedDate} ${currentState.selectedStartTime}"
         val endDateTime = "${currentState.selectedDate} ${currentState.selectedEndTime}"
 
-        // Validate time range
-        return try {
-            val startDate = sdf.parse(startDateTime)
-            val endDate = sdf.parse(endDateTime)
-
-            if (startDate == null || endDate == null) {
-                _bookingUiState.value = currentState.copy(
-                    errorMessage = "Định dạng thời gian không hợp lệ"
-                )
-                return false
-            }
-
-            if (startDate >= endDate) {
-                _bookingUiState.value = currentState.copy(
-                    errorMessage = "Giờ kết thúc phải sau giờ bắt đầu"
-                )
-                return false
-            }
-
-            // Insert ticket into database
-            _bookingUiState.value = currentState.copy(isLoading = true)
-            viewModelScope.launch {
-                try {
-                    val ticket = Ticket(
-                        userId = userId,
-                        parkingId = currentState.selectedParkingLot?.parkingId,
-                        startTime = startDateTime,
-                        endTime = endDateTime,
-                        status = TicketStatus.PENDING,
-                        price = calculatePrice(startDate, endDate)
-                    )
-                    repository.insertTicket(ticket)
-                    _bookingUiState.value = currentState.copy(
-                        isLoading = false,
-                        successMessage = "Đặt chỗ thành công!"
-                    )
-                } catch (e: Exception) {
-                    _bookingUiState.value = currentState.copy(
-                        isLoading = false,
-                        errorMessage = "Lỗi: ${e.message}"
-                    )
-                }
-            }
-            true
+        // Parse dates
+        val startDate = try {
+            sdf.parse(startDateTime)
         } catch (e: Exception) {
             _bookingUiState.value = currentState.copy(
-                errorMessage = "Lỗi: ${e.message}"
+                errorMessage = "Lỗi định dạng thời gian: ${e.message}"
             )
-            false
+            return
+        }
+
+        val endDate = try {
+            sdf.parse(endDateTime)
+        } catch (e: Exception) {
+            _bookingUiState.value = currentState.copy(
+                errorMessage = "Lỗi định dạng thời gian: ${e.message}"
+            )
+            return
+        }
+
+        if (startDate == null || endDate == null) {
+            _bookingUiState.value = currentState.copy(
+                errorMessage = "Không thể phân tích thời gian"
+            )
+            return
+        }
+
+        // Validate time range
+        if (startDate >= endDate) {
+            _bookingUiState.value = currentState.copy(
+                errorMessage = "Giờ kết thúc phải sau giờ bắt đầu"
+            )
+            return
+        }
+
+        // Set loading state
+        _bookingUiState.value = currentState.copy(isLoading = true, errorMessage = "")
+
+        // Insert ticket into database
+        viewModelScope.launch {
+            try {
+                val ticket = Ticket(
+                    userId = userId,
+                    parkingId = currentState.selectedParkingLot?.parkingId,
+                    startTime = startDateTime,
+                    endTime = endDateTime,
+                    status = TicketStatus.PENDING,
+                    price = calculatePrice(startDate, endDate)
+                )
+
+                // Save to database
+                repository.insertTicket(ticket)
+
+                // Update UI state on success
+                _bookingUiState.value = currentState.copy(
+                    isLoading = false,
+                    successMessage = "Đặt chỗ thành công!",
+                    errorMessage = ""
+                )
+
+                // Call success callback
+                onSuccess()
+
+            } catch (e: Exception) {
+                _bookingUiState.value = currentState.copy(
+                    isLoading = false,
+                    errorMessage = "Lỗi: ${e.message ?: "Không xác định được lỗi"}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Validate booking information
+     */
+    private fun validateBooking(state: BookingUiState): String {
+        return when {
+            state.selectedParkingLot == null -> "Vui lòng chọn bãi đỗ"
+            state.selectedDate.isEmpty() -> "Vui lòng chọn ngày"
+            state.selectedStartTime.isEmpty() -> "Vui lòng chọn giờ bắt đầu"
+            state.selectedEndTime.isEmpty() -> "Vui lòng chọn giờ kết thúc"
+            else -> ""
         }
     }
 
@@ -205,8 +218,18 @@ class BookingViewModel(
     }
 
     /**
+     * Reset booking form
+     */
+    fun resetBookingForm() {
+        _bookingUiState.value = BookingUiState(
+            selectedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+        )
+    }
+
+    /**
      * Calculate booking price based on duration
-     * Mục tiêu: sau này có thể tùy chỉnh dựa trên loại bãi đỗ, thời gian, v.v.
+     * Current: 10,000 VND per hour
+     * Can be extended based on parking lot type, time, etc.
      */
     private fun calculatePrice(startDate: Date, endDate: Date): Double {
         val durationMs = endDate.time - startDate.time
@@ -215,19 +238,72 @@ class BookingViewModel(
     }
 
     /**
-     * Get parking lot availability for specific date
-     * TODO: Implement based on HourlyLoad data
+     * Check if time slot overlaps with existing bookings
      */
-    fun getParkingAvailability(parkingId: Int, date: String): StateFlow<Int?> {
-        // This can be extended to check HourlyLoad from database
-        return MutableStateFlow<Int?>(null).asStateFlow()
+    fun hasTimeConflict(date: String, startTime: String, endTime: String): Boolean {
+        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        val newStart = try {
+            sdf.parse("$date $startTime")
+        } catch (e: Exception) {
+            return false
+        }
+        val newEnd = try {
+            sdf.parse("$date $endTime")
+        } catch (e: Exception) {
+            return false
+        }
+
+        if (newStart == null || newEnd == null) return false
+
+        return userTickets.value.any { ticket ->
+            val ticketStart = try {
+                sdf.parse(ticket.startTime ?: "")
+            } catch (e: Exception) {
+                null
+            }
+            val ticketEnd = try {
+                sdf.parse(ticket.endTime ?: "")
+            } catch (e: Exception) {
+                null
+            }
+
+            if (ticketStart != null && ticketEnd != null) {
+                newStart.before(ticketEnd) && newEnd.after(ticketStart)
+            } else false
+        }
     }
 
     /**
-     * Get user's bookings filtered by status
+     * Get user's bookings for specific date
      */
-    fun getUserBookingsByStatus(status: String): StateFlow<List<Ticket>> {
-        // This would require updating repository methods
-        return MutableStateFlow<List<Ticket>>(emptyList()).asStateFlow()
+    fun getBookingsForDate(date: String): List<Ticket> {
+        return userTickets.value.filter { ticket ->
+            ticket.startTime?.startsWith(date) == true
+        }
+    }
+
+    /**
+     * Get available parking lots with capacity
+     */
+    fun getAvailableParkingLots(): List<ParkingLot> {
+        return parkingLots.value.filter { (it.capacity ?: 0) > (it.current ?: 0) }
+    }
+
+    /**
+     * Delete a ticket by ID
+     */
+    fun deleteTicket(ticket: Ticket) {
+        viewModelScope.launch {
+            try {
+                repository.deleteTicket(ticket)
+                _bookingUiState.value = _bookingUiState.value.copy(
+                    successMessage = "Xóa vé thành công!"
+                )
+            } catch (e: Exception) {
+                _bookingUiState.value = _bookingUiState.value.copy(
+                    errorMessage = "Lỗi khi xóa vé: ${e.message}"
+                )
+            }
+        }
     }
 }
