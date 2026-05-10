@@ -72,15 +72,6 @@ fun DebtCard(
                     }
                 }
 
-                Button(
-                    onClick = onPaymentClick,
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF003D9B)
-                    )
-                ) {
-                    Text("Thanh toán ngay")
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
