@@ -46,20 +46,6 @@ class HomeViewModel(
             }
             return
         }
-
-        val success = mockStudentBalance >= debt
-
-        _paymentUiState.update {
-            PaymentUiState(
-                showDialog = true,
-                isSuccess = success,
-                message = if (success) {
-                    "Thanh toán thành công khoản nợ ${debt.toVnd()}."
-                } else {
-                    "Thanh toán thất bại. Số dư ví mock không đủ."
-                }
-            )
-        }
     }
 
     fun dismissPaymentDialog() {
