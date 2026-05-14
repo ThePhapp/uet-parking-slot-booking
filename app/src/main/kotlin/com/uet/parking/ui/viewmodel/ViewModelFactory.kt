@@ -22,6 +22,22 @@ class ViewModelFactory(
                 @Suppress("UNCHECKED_CAST")
                 BookingViewModel(repository, userId) as T
             }
+            modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                SettingsViewModel(repository, userId) as T
+            }
+            modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                AuthViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(HomeViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                HomeViewModel(repository, userId) as T
+            }
+            modelClass.isAssignableFrom(PaymentViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                PaymentViewModel(repository, userId) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
