@@ -25,28 +25,28 @@ import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
+import com.uet.parking.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
-@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun LoginScreen(
     onLoginSuccess: (Int, UserRole) -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    viewModel: AuthViewModel
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var errorText by remember { mutableStateOf("") }
+    val errorText by viewModel.errorText.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val database = remember { AppDatabase.getDatabase(context) }
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF7F9FB))
     ) {
-        val screenWidth = maxWidth
+        val screenWidth = this.maxWidth
         val isTablet = screenWidth > 800.dp
         
         // Background Decoration
@@ -95,7 +95,7 @@ fun LoginScreen(
                     
                     AuthTextField(
                         value = email,
-                        onValueChange = { email = it; errorText = "" },
+                        onValueChange = { email = it; viewModel.clearError() },
                         label = "EMAIL",
                         placeholder = "Nhập email",
                         icon = Icons.Default.Person
@@ -105,7 +105,7 @@ fun LoginScreen(
                     
                     AuthTextField(
                         value = password,
-                        onValueChange = { password = it; errorText = "" },
+                        onValueChange = { password = it; viewModel.clearError() },
                         label = "MẬT KHẨU",
                         placeholder = "••••••••",
                         icon = Icons.Default.Lock,
@@ -125,25 +125,18 @@ fun LoginScreen(
                     
                     Button(
                         onClick = {
-                            val trimmedEmail = email.trim()
-                            if (trimmedEmail.isEmpty() || password.isEmpty()) {
-                                errorText = "Vui lòng điền đầy đủ thông tin"
-                                return@Button
-                            }
-                            scope.launch {
-                                val user = database.userDao().getUserByEmail(trimmedEmail)
-                                if (user != null && user.password == password) {
-                                    onLoginSuccess(user.userId ?: 0, user.role)
-                                } else {
-                                    errorText = "Sai tài khoản hoặc mật khẩu"
-                                }
-                            }
+                            viewModel.login(email, password, onLoginSuccess)
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
+                        enabled = !isLoading,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                     ) {
-                        Text("Đăng nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        if (isLoading) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        } else {
+                            Text("Đăng nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -161,7 +154,10 @@ fun LoginScreen(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryBlue,
-                    modifier = Modifier.clickable { onNavigateToRegister() }
+                    modifier = Modifier.clickable { 
+                        viewModel.clearError()
+                        onNavigateToRegister() 
+                    }
                 )
             }
             

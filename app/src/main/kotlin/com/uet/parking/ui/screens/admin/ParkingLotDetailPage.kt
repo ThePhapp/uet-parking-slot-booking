@@ -28,51 +28,50 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.ParkingLot
 import com.uet.parking.data.model.enums.TicketStatus
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.PrimaryContainer
 import com.uet.parking.ui.theme.PrimaryFixed
 import com.uet.parking.ui.theme.SurfaceVariant
+import com.uet.parking.ui.viewmodel.ParkingLotDetailViewModel
+import com.uet.parking.ui.viewmodel.ParkingLotDetailViewModelFactory
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlinx.coroutines.launch
 
 @Composable
-fun ParkingLotDetailPage(lotId: Int, onBack: () -> Unit) {
+fun ParkingLotDetailPage(lotId: Int, adminId: Int, onBack: () -> Unit) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val database = remember { AppDatabase.getDatabase(context) }
-    var lot by remember { mutableStateOf<ParkingLot?>(null) }
-    var nextShiftLoad by remember { mutableStateOf(0) }
-    
-    // Lấy thông tin bãi đỗ
-    fun refreshLotData() {
-        scope.launch {
-            lot = database.parkingLotDao().getParkingLotById(lotId)
-        }
+    val repository = remember { 
+        ParkingRepository(
+            database.userDao(),
+            database.ticketDao(),
+            database.parkingLotDao(),
+            database.hourlyLoadDao(),
+            database.userInfoDao(),
+            database.adminInfoDao()
+        )
     }
 
-    LaunchedEffect(lotId) {
-        refreshLotData()
-        
-        val now = Calendar.getInstance()
-        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(now.time)
-        val today = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(now.time)
-        
-        val nextShift = when {
-            currentTime < "07:00" -> 1
-            currentTime < "09:15" -> 2
-            currentTime < "12:30" -> 3
-            currentTime < "15:15" -> 4
-            else -> 1
+    val viewModel: ParkingLotDetailViewModel = viewModel(
+        factory = ParkingLotDetailViewModelFactory(repository, lotId, adminId)
+    )
+
+    val lot by viewModel.lot.collectAsState()
+    val nextShiftLoad by viewModel.nextShiftLoad.collectAsState()
+    val toastMessage by viewModel.toastMessage.collectAsState()
+
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearToast()
         }
-        
-        val load = database.hourlyLoadDao().getLoad(lotId, today, nextShift)
-        nextShiftLoad = load?.vehicleCount ?: 0
     }
 
     if (lot == null) {
@@ -152,53 +151,7 @@ fun ParkingLotDetailPage(lotId: Int, onBack: () -> Unit) {
             item {
                 ScanControlCard(
                     onVerifyTicket = { ticketCode ->
-                        val ticketId = ticketCode.removePrefix("PKG-").removeSuffix("-UET").toIntOrNull()
-                        if (ticketId == null) {
-                            Toast.makeText(context, "Mã vé không hợp lệ", Toast.LENGTH_SHORT).show()
-                            return@ScanControlCard
-                        }
-
-                        scope.launch {
-                            val ticket = database.ticketDao().getTicketById(ticketId)
-                            if (ticket == null || ticket.parkingId != lotId) {
-                                Toast.makeText(context, "Vé không tồn tại hoặc sai bãi đỗ", Toast.LENGTH_SHORT).show()
-                                return@launch
-                            }
-
-                            when (ticket.status) {
-                                TicketStatus.PENDING -> {
-                                    database.ticketDao().updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.value)
-                                    database.parkingLotDao().updateCurrentOccupancy(lotId, (lot?.current ?: 0) + 1)
-                                    Toast.makeText(context, "Xe vào bãi thành công!", Toast.LENGTH_SHORT).show()
-                                    refreshLotData()
-                                }
-                                TicketStatus.IN_PROGRESS -> {
-                                    // 1. Tính tiền và cộng vào nợ của User
-                                    val userId = ticket.userId
-                                    if (userId != null) {
-                                        val user = database.userDao().getUserByIdSuspend(userId)
-                                        if (user != null) {
-                                            val currentDebt = user.debt ?: 0.0
-                                            val ticketPrice = ticket.price ?: 0.0
-                                            database.userDao().updateDebt(userId, currentDebt + ticketPrice)
-                                        }
-                                    }
-
-                                    // 2. Xóa vé khỏi CSDL
-                                    database.ticketDao().deleteTicket(ticket)
-
-                                    // 3. Giảm số lượng xe hiện tại
-                                    val newCount = ((lot?.current ?: 0) - 1).coerceAtLeast(0)
-                                    database.parkingLotDao().updateCurrentOccupancy(lotId, newCount)
-
-                                    Toast.makeText(context, "Xe ra bãi thành công! Phí đã được cộng vào tài khoản người dùng.", Toast.LENGTH_LONG).show()
-                                    refreshLotData()
-                                }
-                                else -> {
-                                    Toast.makeText(context, "Vé không hợp lệ", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        }
+                        viewModel.verifyTicket(ticketCode)
                     }
                 )
             }
