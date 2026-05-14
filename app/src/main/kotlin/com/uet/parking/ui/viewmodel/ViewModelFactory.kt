@@ -18,13 +18,9 @@ class ViewModelFactory(
                 @Suppress("UNCHECKED_CAST")
                 AdminBookingViewModel(repository) as T
             }
-            modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
+            modelClass.isAssignableFrom(BookingViewModel::class.java) -> {
                 @Suppress("UNCHECKED_CAST")
-                AuthViewModel(repository) as T
-            }
-            modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
-                @Suppress("UNCHECKED_CAST")
-                SettingsViewModel(repository, userId) as T
+                BookingViewModel(repository, userId) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
@@ -33,12 +29,13 @@ class ViewModelFactory(
 
 class ParkingLotDetailViewModelFactory(
     private val repository: ParkingRepository,
-    private val lotId: Int
+    private val lotId: Int,
+    private val adminId: Int
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ParkingLotDetailViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ParkingLotDetailViewModel(repository, lotId) as T
+            return ParkingLotDetailViewModel(repository, lotId, adminId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

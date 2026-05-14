@@ -39,12 +39,11 @@ import com.uet.parking.ui.screens.booking.SearchingScreen
 import com.uet.parking.ui.screens.booking.SuccessScreen
 import com.uet.parking.ui.screens.booking.TicketScreen
 import com.uet.parking.ui.theme.ParkingTheme
-import com.uet.parking.ui.viewmodel.AuthViewModel
-import com.uet.parking.ui.viewmodel.AuthViewModelFactory
 import com.uet.parking.ui.viewmodel.HomeViewModel
 import com.uet.parking.ui.viewmodel.HomeViewModelFactory
-import com.uet.parking.ui.viewmodel.SettingsViewModel
-import com.uet.parking.ui.viewmodel.ViewModelFactory
+import com.uet.parking.ui.screens.payment.PaymentScreen
+import com.uet.parking.ui.viewmodel.PaymentViewModel
+import com.uet.parking.ui.viewmodel.PaymentViewModelFactory
 
 enum class Screen(val route: String) {
     AUTH("auth"),
@@ -57,7 +56,9 @@ enum class Screen(val route: String) {
     ADMIN_HOME("admin_home"),
     ADMIN_DETAIL("admin_detail/{lotId}"),
     ADMIN_BOOKING("admin_booking"),
-    ADMIN_SETTINGS("admin_settings")
+    ADMIN_SETTINGS("admin_settings"),
+
+    PAYMENT("payment")
 }
 
 class MainActivity : ComponentActivity() {
@@ -117,12 +118,19 @@ fun MainNavigation() {
                         currentRoute == Screen.TICKETS.route -> "Vé của tôi"
                         currentRoute == Screen.SETTINGS.route || currentRoute == Screen.ADMIN_SETTINGS.route -> "Cài đặt"
                         currentRoute == Screen.ADMIN_HOME.route -> "Quản trị bãi đỗ"
+                        currentRoute == Screen.PAYMENT.route -> "Thanh toán"
                         currentRoute?.startsWith("admin_detail") == true -> "Chi tiết bãi đỗ"
                         currentRoute == Screen.ADMIN_BOOKING.route -> "Lịch trình đặt chỗ"
                         else -> "Campus Parking"
                     },
                     showBack = currentRoute?.startsWith("admin_detail") == true ||
-                            currentRoute in listOf(Screen.TICKETS.route, Screen.BOOKING.route, Screen.SEARCHING.route, Screen.SUCCESS.route),
+                            currentRoute in listOf(
+                                Screen.TICKETS.route,
+                                Screen.BOOKING.route,
+                                Screen.SEARCHING.route,
+                                Screen.SUCCESS.route,
+                                Screen.PAYMENT.route
+                            ),
                     onBackClick = { navController.popBackStack() },
                     onHomeClick = {
                         val homeRoute = if (isAdmin) Screen.ADMIN_HOME.route else Screen.HOME.route
@@ -182,20 +190,14 @@ fun MainNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.AUTH.route) {
-                val authViewModel: AuthViewModel = viewModel(
-                    factory = AuthViewModelFactory(repository)
-                )
-                AuthScreen(
-                    viewModel = authViewModel,
-                    onLoginSuccess = { userId, role ->
-                        currentUserId = userId
-                        userRole = role
-                        val startRoute = if (role == UserRole.ADMIN) Screen.ADMIN_HOME.route else Screen.HOME.route
-                        navController.navigate(startRoute) {
-                            popUpTo(Screen.AUTH.route) { inclusive = true }
-                        }
+                AuthScreen(onLoginSuccess = { userId, role ->
+                    currentUserId = userId
+                    userRole = role
+                    val startRoute = if (role == UserRole.ADMIN) Screen.ADMIN_HOME.route else Screen.HOME.route
+                    navController.navigate(startRoute) {
+                        popUpTo(Screen.AUTH.route) { inclusive = true }
                     }
-                )
+                })
             }
 
             composable(Screen.HOME.route) {
@@ -206,9 +208,27 @@ fun MainNavigation() {
                 HomeScreen(
                     viewModel = homeViewModel,
                     onBookNow = { navController.navigate(Screen.BOOKING.route) },
+                    onPaymentClick = { navController.navigate(Screen.PAYMENT.route) },
                     onSettingsClick = { navController.navigate(Screen.SETTINGS.route) }
                 )
             }
+
+            composable(Screen.PAYMENT.route) {
+                val userId = currentUserId ?: 0
+                val paymentViewModel: PaymentViewModel = viewModel(
+                    factory = PaymentViewModelFactory(repository, userId)
+                )
+
+                PaymentScreen(
+                    viewModel = paymentViewModel,
+                    onBackHome = {
+                        navController.navigate(Screen.HOME.route) {
+                            popUpTo(Screen.HOME.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(Screen.BOOKING.route) {
                 BookingFormScreen(
                     userId = currentUserId ?: 0,
@@ -226,12 +246,8 @@ fun MainNavigation() {
                 TicketScreen(userId = currentUserId ?: 0)
             }
             composable(Screen.SETTINGS.route) {
-                val userId = currentUserId ?: 0
-                val settingsViewModel: SettingsViewModel = viewModel(
-                    factory = ViewModelFactory(repository, userId)
-                )
                 SettingsScreen(
-                    viewModel = settingsViewModel,
+                    userId = currentUserId ?: 0,
                     onBackClick = { navController.popBackStack() },
                     onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(0) } }
                 )
@@ -248,16 +264,16 @@ fun MainNavigation() {
             }
             composable(Screen.ADMIN_DETAIL.route) { backStackEntry ->
                 val lotId = backStackEntry.arguments?.getString("lotId")?.toIntOrNull() ?: 0
-                ParkingLotDetailPage(lotId = lotId, onBack = { navController.popBackStack() })
+                ParkingLotDetailPage(
+                    lotId = lotId,
+                    adminId = currentUserId ?: 0, // Truyền adminId tại đây
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.ADMIN_BOOKING.route) { PlaceholderScreen("Lịch trình đặt chỗ (Trống)") }
             composable(Screen.ADMIN_SETTINGS.route) {
-                val userId = currentUserId ?: 0
-                val settingsViewModel: SettingsViewModel = viewModel(
-                    factory = ViewModelFactory(repository, userId)
-                )
                 SettingsScreen(
-                    viewModel = settingsViewModel,
+                    userId = currentUserId ?: 0,
                     onBackClick = { navController.popBackStack() },
                     onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(0) } }
                 )

@@ -45,7 +45,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ParkingLotDetailPage(lotId: Int, onBack: () -> Unit) {
+fun ParkingLotDetailPage(lotId: Int, adminId: Int, onBack: () -> Unit) {
     val context = LocalContext.current
     val database = remember { AppDatabase.getDatabase(context) }
     val repository = remember { 
@@ -60,7 +60,7 @@ fun ParkingLotDetailPage(lotId: Int, onBack: () -> Unit) {
     }
 
     val viewModel: ParkingLotDetailViewModel = viewModel(
-        factory = ParkingLotDetailViewModelFactory(repository, lotId)
+        factory = ParkingLotDetailViewModelFactory(repository, lotId, adminId)
     )
 
     val lot by viewModel.lot.collectAsState()

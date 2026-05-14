@@ -20,7 +20,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.uet.parking.ui.viewmodel.HomeViewModel
-
+import androidx.compose.foundation.clickable
 
 data class EventUiModel(
     val title: String,
@@ -33,8 +33,9 @@ data class EventUiModel(
 fun HomeScreen(
     viewModel: HomeViewModel,
     onBookNow: () -> Unit = {},
+    onPaymentClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
-) {
+){
     val userWithProfile by viewModel.userProfile.collectAsState()
     val paymentUiState by viewModel.paymentUiState.collectAsState()
 
@@ -65,24 +66,6 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Nút Đặt xe
-            item {
-                Button(
-                    onClick = onBookNow,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-                ) {
-                    Text(
-                        text = "Đặt xe",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
 
             // Thẻ Nợ (DebtCard)
             item {
@@ -103,9 +86,94 @@ fun HomeScreen(
                         cardType = "Sinh Viên",
                         studentCode = studentCode,
                         onPaymentClick = {
-                            viewModel.payDebt(rawDebt)
+                            if (rawDebt > 0.0) {
+                                onPaymentClick()
+                            } else {
+                                viewModel.payDebt(rawDebt)
+                            }
                         }
                     )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "TIỆN ÍCH",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+
+                        // Nút Đặt xe
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(100.dp)
+                                .clickable { onBookNow() },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "🚗",
+                                    fontSize = 28.sp
+                                )
+
+                                Text(
+                                    text = "Đặt xe",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                            }
+                        }
+
+                        // Nút Thanh toán
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(100.dp)
+                                .clickable {
+                                    if (rawDebt > 0.0) {
+                                        onPaymentClick()
+                                    } else {
+                                        viewModel.payDebt(rawDebt)
+                                    }
+                                },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "💳",
+                                    fontSize = 28.sp
+                                )
+
+                                Text(
+                                    text = "Thanh toán",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
 
