@@ -41,6 +41,9 @@ import com.uet.parking.ui.screens.booking.TicketScreen
 import com.uet.parking.ui.theme.ParkingTheme
 import com.uet.parking.ui.viewmodel.HomeViewModel
 import com.uet.parking.ui.viewmodel.HomeViewModelFactory
+import com.uet.parking.ui.screens.payment.PaymentScreen
+import com.uet.parking.ui.viewmodel.PaymentViewModel
+import com.uet.parking.ui.viewmodel.PaymentViewModelFactory
 
 enum class Screen(val route: String) {
     AUTH("auth"),
@@ -53,7 +56,9 @@ enum class Screen(val route: String) {
     ADMIN_HOME("admin_home"),
     ADMIN_DETAIL("admin_detail/{lotId}"),
     ADMIN_BOOKING("admin_booking"),
-    ADMIN_SETTINGS("admin_settings")
+    ADMIN_SETTINGS("admin_settings"),
+
+    PAYMENT("payment")
 }
 
 class MainActivity : ComponentActivity() {
@@ -113,12 +118,19 @@ fun MainNavigation() {
                         currentRoute == Screen.TICKETS.route -> "Vé của tôi"
                         currentRoute == Screen.SETTINGS.route || currentRoute == Screen.ADMIN_SETTINGS.route -> "Cài đặt"
                         currentRoute == Screen.ADMIN_HOME.route -> "Quản trị bãi đỗ"
+                        currentRoute == Screen.PAYMENT.route -> "Thanh toán"
                         currentRoute?.startsWith("admin_detail") == true -> "Chi tiết bãi đỗ"
                         currentRoute == Screen.ADMIN_BOOKING.route -> "Lịch trình đặt chỗ"
                         else -> "Campus Parking"
                     },
                     showBack = currentRoute?.startsWith("admin_detail") == true ||
-                            currentRoute in listOf(Screen.TICKETS.route, Screen.BOOKING.route, Screen.SEARCHING.route, Screen.SUCCESS.route),
+                            currentRoute in listOf(
+                                Screen.TICKETS.route,
+                                Screen.BOOKING.route,
+                                Screen.SEARCHING.route,
+                                Screen.SUCCESS.route,
+                                Screen.PAYMENT.route
+                            ),
                     onBackClick = { navController.popBackStack() },
                     onHomeClick = {
                         val homeRoute = if (isAdmin) Screen.ADMIN_HOME.route else Screen.HOME.route
@@ -196,9 +208,27 @@ fun MainNavigation() {
                 HomeScreen(
                     viewModel = homeViewModel,
                     onBookNow = { navController.navigate(Screen.BOOKING.route) },
+                    onPaymentClick = { navController.navigate(Screen.PAYMENT.route) },
                     onSettingsClick = { navController.navigate(Screen.SETTINGS.route) }
                 )
             }
+
+            composable(Screen.PAYMENT.route) {
+                val userId = currentUserId ?: 0
+                val paymentViewModel: PaymentViewModel = viewModel(
+                    factory = PaymentViewModelFactory(repository, userId)
+                )
+
+                PaymentScreen(
+                    viewModel = paymentViewModel,
+                    onBackHome = {
+                        navController.navigate(Screen.HOME.route) {
+                            popUpTo(Screen.HOME.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(Screen.BOOKING.route) {
                 BookingFormScreen(
                     userId = currentUserId ?: 0,
