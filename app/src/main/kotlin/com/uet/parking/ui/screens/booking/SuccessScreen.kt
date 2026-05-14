@@ -28,7 +28,6 @@ import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.PrimaryFixed
 import kotlinx.coroutines.launch
-import com.uet.parking.data.model.UserInfo
 
 @Composable
 fun SuccessScreen(
@@ -42,16 +41,6 @@ fun SuccessScreen(
     val latestTicket = tickets.lastOrNull()
     
     var parkingLot by remember { mutableStateOf<ParkingLot?>(null) }
-
-    var hasAddedDebt by remember { mutableStateOf(false) }
-
-    LaunchedEffect(latestTicket) {
-        if (latestTicket != null && !hasAddedDebt) {
-            val currentDebt = database.userInfoDao()
-                .getUserInfoById(userId)
-            hasAddedDebt = true
-        }
-    }
     
     LaunchedEffect(latestTicket) {
         latestTicket?.parkingId?.let { id ->

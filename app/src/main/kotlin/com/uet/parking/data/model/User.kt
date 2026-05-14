@@ -20,6 +20,9 @@ data class User(
     @ColumnInfo(name = "password", defaultValue = "NULL")
     val password: String? = null,
 
+    @ColumnInfo(name = "debt", defaultValue = "'0.00'")
+    val debt: Double? = 0.0,
+
     @ColumnInfo(name = "role", defaultValue = "'user'")
     val role: UserRole = UserRole.USER
 )

@@ -30,8 +30,7 @@ import androidx.compose.ui.unit.sp
 fun DebtCard(
     debt: String,
     cardType: String,
-    studentCode: String,
-    onPaymentClick: () -> Unit = {}
+    studentCode: String
 ) {
     Card(
         shape = RoundedCornerShape(24.dp)
@@ -72,6 +71,15 @@ fun DebtCard(
                     }
                 }
 
+                Button(
+                    onClick = { },
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF003D9B)
+                    )
+                ) {
+                    Text("Thanh toán ngay")
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
