@@ -29,12 +29,13 @@ class ViewModelFactory(
 
 class ParkingLotDetailViewModelFactory(
     private val repository: ParkingRepository,
-    private val lotId: Int
+    private val lotId: Int,
+    private val adminId: Int
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ParkingLotDetailViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ParkingLotDetailViewModel(repository, lotId) as T
+            return ParkingLotDetailViewModel(repository, lotId, adminId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

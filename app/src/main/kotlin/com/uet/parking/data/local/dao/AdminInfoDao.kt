@@ -14,4 +14,7 @@ interface AdminInfoDao {
 
     @Update
     suspend fun updateAdminInfo(adminInfo: AdminInfo)
+
+    @Query("UPDATE adminInfo SET kpi = kpi + 1 WHERE userId = :userId")
+    suspend fun incrementKPI(userId: Int)
 }
