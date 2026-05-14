@@ -1,5 +1,6 @@
 package com.uet.parking.ui.screens.booking
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,6 +32,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.layout.BoxWithConstraints
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun BookingFormScreen(
     userId: Int,

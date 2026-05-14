@@ -16,6 +16,7 @@ class ParkingRepository(
     suspend fun getUserByEmail(email: String): User? = userDao.getUserByEmail(email)
     fun getUserById(id: Int): Flow<User?> = userDao.getUserById(id)
     suspend fun getUserByIdSuspend(id: Int): User? = userDao.getUserByIdSuspend(id)
+    suspend fun insertUser(user: User) = userDao.insertUser(user)
 
     // Cập nhật nợ (Debt) vào bảng userInfo
     suspend fun updateDebt(id: Int, newDebt: Double) = userInfoDao.updateDebt(id, newDebt)
