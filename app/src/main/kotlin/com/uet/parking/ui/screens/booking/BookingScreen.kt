@@ -1,6 +1,5 @@
 package com.uet.parking.ui.screens.booking
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,9 +29,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.foundation.layout.BoxWithConstraints
 
-@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun BookingFormScreen(
     userId: Int,
@@ -65,7 +62,7 @@ fun BookingFormScreen(
             .fillMaxSize()
             .background(BackgroundGray)
     ) {
-        val width = this.maxWidth
+        val width = maxWidth
         val isWide = width > 800.dp
         val horizontalPadding = if (width > 1000.dp) (width - 1000.dp) / 2 + 24.dp else 16.dp
 
@@ -196,22 +193,9 @@ fun BookingFormScreen(
                             )
                             
                             // 1. Lưu vé vào DB
-                            // 1. Lưu vé vào DB
                             database.ticketDao().insertTicket(ticket)
-
-// 2. Cộng tiền vé vào nợ của user
-                            val currentUserInfo = database.userInfoDao()
-                                .getUserInfoById(userId)
-                                .first()
-
-                            val currentDebt = currentUserInfo?.debt ?: 0.0
-
-                            database.userInfoDao().updateDebt(
-                                userId,
-                                currentDebt + (ticket.price ?: 0.0)
-                            )
-
-// 3. Cập nhật bảng HourlyLoad
+                            
+                            // 2. Cập nhật bảng HourlyLoad
                             val currentLoad = database.hourlyLoadDao().getLoad(1, selectedDate, shift)
                             if (currentLoad == null) {
                                 database.hourlyLoadDao().insertOrUpdate(
