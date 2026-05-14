@@ -234,7 +234,11 @@ fun MainNavigation() {
             }
             composable(Screen.ADMIN_DETAIL.route) { backStackEntry ->
                 val lotId = backStackEntry.arguments?.getString("lotId")?.toIntOrNull() ?: 0
-                ParkingLotDetailPage(lotId = lotId, onBack = { navController.popBackStack() })
+                ParkingLotDetailPage(
+                    lotId = lotId,
+                    adminId = currentUserId ?: 0, // Truyền adminId tại đây
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.ADMIN_BOOKING.route) { PlaceholderScreen("Lịch trình đặt chỗ (Trống)") }
             composable(Screen.ADMIN_SETTINGS.route) {

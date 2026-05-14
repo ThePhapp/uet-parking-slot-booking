@@ -14,7 +14,8 @@ import java.util.*
 
 class ParkingLotDetailViewModel(
     private val repository: ParkingRepository,
-    private val lotId: Int
+    private val lotId: Int,
+    private val adminId: Int // Thêm adminId để cập nhật KPI
 ) : ViewModel() {
 
     private val _lot = MutableStateFlow<ParkingLot?>(null)
@@ -76,29 +77,33 @@ class ParkingLotDetailViewModel(
                 TicketStatus.PENDING -> {
                     repository.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.value)
                     repository.updateCurrentOccupancy(lotId, (currentLot?.current ?: 0) + 1)
+                    
+                    // Thăng tiến KPI cho Admin khi quét vé vào thành công
+                    repository.incrementKPI(adminId)
+                    
                     _toastMessage.value = "Xe vào bãi thành công!"
                     refreshLotData()
                 }
                 TicketStatus.IN_PROGRESS -> {
                     // 1. Lấy thông tin User kèm Profile (chứa debt trong info)
                     ticket.userId?.let { userId ->
-                        // Sử dụng Flow để lấy UserWithProfile và lấy giá trị đầu tiên
                         val userWithProfile = repository.getUserWithProfile(userId).firstOrNull()
 
                         userWithProfile?.let { profile ->
-                            // Lấy nợ hiện tại từ bảng UserInfo (info)
                             val currentDebt = profile.info?.debt ?: 0.0
                             val ticketPrice = ticket.price ?: 10000.0
 
-                            // Cập nhật nợ mới vào bảng UserInfo
                             repository.updateDebt(userId, currentDebt + ticketPrice)
                         }
                     }
 
-                    // 2. Xóa vé khỏi CSDL
+                    // 2. Thăng tiến KPI cho Admin khi quét vé ra thành công
+                    repository.incrementKPI(adminId)
+
+                    // 3. Xóa vé khỏi CSDL
                     repository.deleteTicket(ticket)
 
-                    // 3. Giảm số lượng xe hiện tại
+                    // 4. Giảm số lượng xe hiện tại
                     val newCount = ((currentLot?.current ?: 0) - 1).coerceAtLeast(0)
                     repository.updateCurrentOccupancy(lotId, newCount)
 

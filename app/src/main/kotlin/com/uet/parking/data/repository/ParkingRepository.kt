@@ -17,7 +17,7 @@ class ParkingRepository(
     fun getUserById(id: Int): Flow<User?> = userDao.getUserById(id)
     suspend fun getUserByIdSuspend(id: Int): User? = userDao.getUserByIdSuspend(id)
 
-    // SỬA: Gọi sang userInfoDao vì cột 'dept' hiện nằm ở bảng 'user_info'
+    // Cập nhật nợ (Debt) vào bảng userInfo
     suspend fun updateDebt(id: Int, newDebt: Double) = userInfoDao.updateDebt(id, newDebt)
 
     // User Profiles
@@ -31,6 +31,7 @@ class ParkingRepository(
     // Admin Info
     fun getAdminInfoById(userId: Int): Flow<AdminInfo?> = adminInfoDao.getAdminInfoById(userId)
     suspend fun insertAdminInfo(adminInfo: AdminInfo) = adminInfoDao.insertAdminInfo(adminInfo)
+    suspend fun incrementKPI(userId: Int) = adminInfoDao.incrementKPI(userId)
 
     // Parking Lot
     fun getAllParkingLots(): Flow<List<ParkingLot>> = parkingLotDao.getAllParkingLots()

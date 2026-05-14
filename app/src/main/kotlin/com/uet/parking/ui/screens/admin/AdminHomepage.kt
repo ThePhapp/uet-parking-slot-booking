@@ -36,7 +36,7 @@ import com.uet.parking.ui.viewmodel.ViewModelFactory
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun AdminHomepage(
-    userId: Int, // Thêm tham số userId để truyền vào Factory
+    userId: Int,
     onNavigateToDetail: (Int) -> Unit
 ) {
     val context = LocalContext.current
@@ -53,10 +53,11 @@ fun AdminHomepage(
     }
 
     val viewModel: AdminViewModel = viewModel(
-        factory = ViewModelFactory(repository, userId) // Đã sửa: Truyền userId vào Factory
+        factory = ViewModelFactory(repository, userId)
     )
 
     val parkingLots by viewModel.parkingLots.collectAsState()
+    val adminProfile by viewModel.adminProfile.collectAsState()
     val totalSlots by viewModel.totalSlots.collectAsState()
     val availableSlots by viewModel.availableSlots.collectAsState()
 
@@ -77,7 +78,13 @@ fun AdminHomepage(
             }
 
             item(span = { GridItemSpan(maxLineSpan) }) {
-                QuickActionsCard()
+                QuickActionsCard(
+                    onManageLotClick = {
+                        adminProfile?.adminInfo?.parkingId?.let { id ->
+                            onNavigateToDetail(id)
+                        }
+                    }
+                )
             }
 
             item(span = { GridItemSpan(maxLineSpan) }) {
@@ -100,7 +107,7 @@ fun AdminHomepage(
 }
 
 @Composable
-fun QuickActionsCard() {
+fun QuickActionsCard(onManageLotClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -123,7 +130,8 @@ fun QuickActionsCard() {
                 QuickActionButton(
                     icon = Icons.Default.Settings,
                     label = "Quản lý bãi đỗ",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    onClick = onManageLotClick
                 )
                 QuickActionButton(
                     icon = Icons.Default.ConfirmationNumber,
@@ -158,10 +166,11 @@ fun QuickActionButton(
     icon: ImageVector,
     label: String,
     modifier: Modifier = Modifier,
-    isPlaceholder: Boolean = false
+    isPlaceholder: Boolean = false,
+    onClick: () -> Unit = {}
 ) {
     OutlinedButton(
-        onClick = { /* Handle click */ },
+        onClick = onClick,
         modifier = modifier.height(56.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.outlinedButtonColors(
