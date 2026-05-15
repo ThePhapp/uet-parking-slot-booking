@@ -22,7 +22,7 @@ import com.uet.parking.data.model.*
         AdminInfo::class,
         BookingEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -62,6 +62,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration from version 2 to 3: thêm cột QR check-in
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `booking` ADD COLUMN `qrCode` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `booking` ADD COLUMN `checkedInAt` TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE `booking` ADD COLUMN `isCheckedIn` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -70,7 +81,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "parking_system.db"
                 )
                 .createFromAsset("database.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
@@ -79,4 +90,3 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 }
-

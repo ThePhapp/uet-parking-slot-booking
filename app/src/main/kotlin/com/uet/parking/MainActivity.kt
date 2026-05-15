@@ -31,6 +31,7 @@ import com.uet.parking.ui.components.common.AppBottomNavigationBar
 import com.uet.parking.ui.components.common.AppTopBar
 import com.uet.parking.ui.screens.admin.AdminHomepage
 import com.uet.parking.ui.screens.admin.AdminBookingScreen
+import com.uet.parking.ui.screens.admin.AdminQrScanScreen
 import com.uet.parking.ui.screens.admin.ParkingLotDetailPage
 import com.uet.parking.ui.screens.auth.AuthScreen
 import com.uet.parking.ui.screens.home.HomeScreen
@@ -59,6 +60,7 @@ enum class Screen(val route: String) {
     ADMIN_HOME("admin_home"),
     ADMIN_DETAIL("admin_detail/{lotId}"),
     ADMIN_BOOKING("admin_booking"),
+    ADMIN_QR_SCAN("admin_qr_scan"),
     ADMIN_SETTINGS("admin_settings"),
     PAYMENT("payment")
 }
@@ -124,6 +126,7 @@ fun MainNavigation() {
                         currentRoute == Screen.PAYMENT.route -> "Thanh toán"
                         currentRoute?.startsWith("admin_detail") == true -> "Chi tiết bãi đỗ"
                         currentRoute == Screen.ADMIN_BOOKING.route -> "Quản lý đặt sân"
+                        currentRoute == Screen.ADMIN_QR_SCAN.route -> "Quét QR Check-in"
                         else -> "Campus Parking"
                     },
                     showBack = currentRoute?.startsWith("admin_detail") == true ||
@@ -296,7 +299,15 @@ fun MainNavigation() {
                 )
             }
             composable(Screen.ADMIN_BOOKING.route) {
-                AdminBookingScreen(userId = currentUserId ?: 0)
+                AdminBookingScreen(
+                    userId = currentUserId ?: 0,
+                    onNavigateToQrScan = {
+                        navController.navigate(Screen.ADMIN_QR_SCAN.route)
+                    }
+                )
+            }
+            composable(Screen.ADMIN_QR_SCAN.route) {
+                AdminQrScanScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.ADMIN_SETTINGS.route) {
                 val userId = currentUserId ?: 0

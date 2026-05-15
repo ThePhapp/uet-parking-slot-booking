@@ -34,7 +34,7 @@ import com.uet.parking.ui.viewmodel.AdminBookingViewModel
 import com.uet.parking.ui.viewmodel.ViewModelFactory
 
 @Composable
-fun AdminBookingScreen(userId: Int) {
+fun AdminBookingScreen(userId: Int, onNavigateToQrScan: () -> Unit = {}) {
     val context = LocalContext.current
     val database = remember { AppDatabase.getDatabase(context) }
     val repository = remember {
@@ -57,14 +57,15 @@ fun AdminBookingScreen(userId: Int) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Tabs: Tất cả, Chờ duyệt, Đã duyệt, Đã từ chối
+    // Tabs: Tất cả, Chờ duyệt, Đã duyệt, Đã check-in, Đã từ chối
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Tất cả", "Chờ duyệt", "Đã duyệt", "Đã từ chối")
+    val tabs = listOf("Tất cả", "Chờ duyệt", "Đã duyệt", "Checked In", "Đã từ chối")
 
     val filteredBookings = when (selectedTab) {
         1 -> allBookings.filter { it.status == BookingStatus.PENDING }
         2 -> allBookings.filter { it.status == BookingStatus.APPROVED }
-        3 -> allBookings.filter { it.status == BookingStatus.REJECTED }
+        3 -> allBookings.filter { it.status == BookingStatus.CHECKED_IN }
+        4 -> allBookings.filter { it.status == BookingStatus.REJECTED }
         else -> allBookings
     }
 
@@ -87,7 +88,8 @@ fun AdminBookingScreen(userId: Int) {
                 total = allBookings.size,
                 pending = allBookings.count { it.status == BookingStatus.PENDING },
                 approved = allBookings.count { it.status == BookingStatus.APPROVED },
-                rejected = allBookings.count { it.status == BookingStatus.REJECTED }
+                rejected = allBookings.count { it.status == BookingStatus.REJECTED },
+                checkedIn = allBookings.count { it.status == BookingStatus.CHECKED_IN }
             )
 
             // Tab row
@@ -102,7 +104,8 @@ fun AdminBookingScreen(userId: Int) {
                     val count = when (index) {
                         1 -> allBookings.count { it.status == BookingStatus.PENDING }
                         2 -> allBookings.count { it.status == BookingStatus.APPROVED }
-                        3 -> allBookings.count { it.status == BookingStatus.REJECTED }
+                        3 -> allBookings.count { it.status == BookingStatus.CHECKED_IN }
+                        4 -> allBookings.count { it.status == BookingStatus.REJECTED }
                         else -> allBookings.size
                     }
                     Tab(
@@ -184,11 +187,27 @@ fun AdminBookingScreen(userId: Int) {
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // Floating Action Button - Scan QR
+        FloatingActionButton(
+            onClick = onNavigateToQrScan,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(24.dp),
+            containerColor = PrimaryBlue,
+            contentColor = Color.White
+        ) {
+            Icon(
+                Icons.Default.QrCodeScanner,
+                contentDescription = "Quét QR Code",
+                modifier = Modifier.size(28.dp)
+            )
+        }
     }
 }
 
 @Composable
-fun AdminBookingHeader(total: Int, pending: Int, approved: Int, rejected: Int) {
+fun AdminBookingHeader(total: Int, pending: Int, approved: Int, rejected: Int, checkedIn: Int) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -218,6 +237,7 @@ fun AdminBookingHeader(total: Int, pending: Int, approved: Int, rejected: Int) {
             ) {
                 StatChip("Chờ duyệt", pending, Color(0xFFFFA726))
                 StatChip("Đã duyệt", approved, Color(0xFF66BB6A))
+                StatChip("Đã nhận", checkedIn, Color(0xFF42A5F5))
                 StatChip("Từ chối", rejected, Color(0xFFEF5350))
             }
         }
@@ -275,12 +295,14 @@ fun AdminBookingCard(
     val statusColor = when (booking.status) {
         BookingStatus.PENDING -> Color(0xFFFFA726)
         BookingStatus.APPROVED -> Color(0xFF66BB6A)
+        BookingStatus.CHECKED_IN -> Color(0xFF42A5F5)
         BookingStatus.REJECTED -> Color(0xFFEF5350)
     }
 
     val statusBg = when (booking.status) {
         BookingStatus.PENDING -> Color(0xFFFFF3E0)
         BookingStatus.APPROVED -> Color(0xFFE8F5E9)
+        BookingStatus.CHECKED_IN -> Color(0xFFE3F2FD)
         BookingStatus.REJECTED -> Color(0xFFFDECEA)
     }
 

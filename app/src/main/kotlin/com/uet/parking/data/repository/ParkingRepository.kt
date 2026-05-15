@@ -87,4 +87,17 @@ class ParkingRepository(
 
     fun getPendingBookings(): Flow<List<BookingEntity>> =
         bookingDao?.getPendingBookings() ?: throw IllegalStateException("BookingDao not initialized")
-}
+
+    // ==============================
+    // QR Check-in
+    // ==============================
+
+    suspend fun updateQrCode(bookingId: Int, qrCode: String) =
+        bookingDao?.updateQrCode(bookingId, qrCode)
+
+    suspend fun checkInBooking(bookingId: Int, checkedInAt: String) =
+        bookingDao?.checkInBooking(bookingId, checkedInAt)
+
+    suspend fun isBookingCheckedIn(bookingId: Int): Boolean =
+        bookingDao?.isBookingCheckedIn(bookingId) ?: false
+}
