@@ -82,4 +82,32 @@ interface BookingDao {
      */
     @Query("SELECT * FROM booking WHERE status = 'Pending' ORDER BY createdAt DESC")
     fun getPendingBookings(): Flow<List<BookingEntity>>
+
+    // ==============================
+    // QR Check-in
+    // ==============================
+
+    /**
+     * Cập nhật QR code cho booking
+     */
+    @Query("UPDATE booking SET qrCode = :qrCode WHERE id = :bookingId")
+    suspend fun updateQrCode(bookingId: Int, qrCode: String)
+
+    /**
+     * Check-in booking: cập nhật trạng thái, thời gian check-in, và flag
+     */
+    @Query("""
+        UPDATE booking SET 
+            status = 'Checked In', 
+            isCheckedIn = 1, 
+            checkedInAt = :checkedInAt 
+        WHERE id = :bookingId
+    """)
+    suspend fun checkInBooking(bookingId: Int, checkedInAt: String)
+
+    /**
+     * Kiểm tra booking đã check-in chưa
+     */
+    @Query("SELECT isCheckedIn FROM booking WHERE id = :bookingId")
+    suspend fun isBookingCheckedIn(bookingId: Int): Boolean?
 }

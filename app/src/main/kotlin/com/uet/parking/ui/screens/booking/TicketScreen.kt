@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,12 +30,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.uet.parking.data.local.db.AppDatabase
+import com.uet.parking.data.model.BookingEntity
 import com.uet.parking.data.model.ParkingLot
 import com.uet.parking.data.model.Ticket
 import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
@@ -43,9 +48,13 @@ fun TicketScreen(userId: Int) {
     val scope = rememberCoroutineScope()
     val database = remember { AppDatabase.getDatabase(context) }
     val tickets by database.ticketDao().getTicketsByUserId(userId).collectAsState(initial = emptyList())
+    // Lấy bookings của user để match QR
+    val bookings by database.bookingDao().getBookingsByUserId(userId).collectAsState(initial = emptyList())
     
     var showDeleteDialog by remember { mutableStateOf(false) }
     var ticketToDelete by remember { mutableStateOf<Ticket?>(null) }
+    var showQrBooking by remember { mutableStateOf<BookingEntity?>(null) }
+    var qrParkingLotName by remember { mutableStateOf("") }
 
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
@@ -73,9 +82,16 @@ fun TicketScreen(userId: Int) {
 
                     val ticketCode = "PKG-${ticket.ticketId}-UET"
 
+                    // Tìm booking tương ứng với ticket
+                    val matchingBooking = bookings.find { booking ->
+                        val startTime = "${booking.bookingDate} ${booking.bookingTime.split(" - ")[0]}"
+                        booking.userId == userId && ticket.startTime == startTime
+                    }
+
                     TicketItem(
                         ticket = ticket,
                         parkingLot = parkingLot,
+                        hasQrCode = matchingBooking != null,
                         onCopyCode = {
                             val clip = ClipData.newPlainText("Ticket Code", ticketCode)
                             clipboardManager.setPrimaryClip(clip)
@@ -84,6 +100,12 @@ fun TicketScreen(userId: Int) {
                         onDeleteClick = {
                             ticketToDelete = ticket
                             showDeleteDialog = true
+                        },
+                        onViewQr = {
+                            matchingBooking?.let { booking ->
+                                qrParkingLotName = parkingLot?.name ?: "Sân #${booking.fieldId}"
+                                showQrBooking = booking
+                            }
                         }
                     )
                 }
@@ -120,6 +142,20 @@ fun TicketScreen(userId: Int) {
                 containerColor = Color.White
             )
         }
+
+        // QR Code Dialog (full-screen)
+        if (showQrBooking != null) {
+            Dialog(
+                onDismissRequest = { showQrBooking = null },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                QrCodeScreen(
+                    booking = showQrBooking!!,
+                    parkingLotName = qrParkingLotName,
+                    onDismiss = { showQrBooking = null }
+                )
+            }
+        }
     }
 }
 
@@ -127,8 +163,10 @@ fun TicketScreen(userId: Int) {
 fun TicketItem(
     ticket: Ticket, 
     parkingLot: ParkingLot?, 
+    hasQrCode: Boolean = false,
     onCopyCode: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onViewQr: () -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
     // Không cho phép xóa nếu vé đang In Progress
@@ -178,6 +216,17 @@ fun TicketItem(
                 
                 TicketStatusBadge(ticket.status)
 
+                // QR Code button
+                if (hasQrCode) {
+                    IconButton(onClick = onViewQr) {
+                        Icon(
+                            Icons.Default.QrCode2,
+                            contentDescription = "Xem QR",
+                            tint = PrimaryBlue
+                        )
+                    }
+                }
+
                 if (canDelete) {
                     IconButton(onClick = onDeleteClick) {
                         Icon(Icons.Default.Delete, "Xóa", tint = Color(0xFFBA1A1A))
@@ -204,6 +253,21 @@ fun TicketItem(
                     DetailRow(Icons.Default.LocationOn, "Địa chỉ", parkingLot?.address ?: "Đang tải...")
                     Spacer(modifier = Modifier.height(8.dp))
                     DetailRow(Icons.Default.ConfirmationNumber, "Khung giờ", "${ticket.startTime?.substringAfter(" ")} - ${ticket.endTime?.substringAfter(" ")}")
+
+                    // QR Button trong expanded view
+                    if (hasQrCode) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onViewQr,
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                        ) {
+                            Icon(Icons.Default.QrCode2, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Xem QR Vé", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
                 }
             }
         }

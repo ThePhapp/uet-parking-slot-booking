@@ -28,6 +28,7 @@ import com.uet.parking.data.model.enums.BookingStatus
 import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
+import com.uet.parking.util.QrCodeGenerator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -211,7 +212,19 @@ fun BookingFormScreen(
                                 status = BookingStatus.PENDING,
                                 createdAt = nowStr
                             )
-                            database.bookingDao().insertBooking(bookingEntity)
+                            val bookingId = database.bookingDao().insertBooking(bookingEntity)
+
+                            // 1c. Tạo QR Code và lưu vào booking
+                            val qrContent = QrCodeGenerator.generateQrContent(
+                                bookingId = bookingId.toInt(),
+                                userId = userId,
+                                fieldId = 1,
+                                bookingDate = selectedDate,
+                                bookingTime = "$selectedStartTime - $selectedEndTime",
+                                slot = shift,
+                                status = BookingStatus.PENDING.value
+                            )
+                            database.bookingDao().updateQrCode(bookingId.toInt(), qrContent)
 
 // 2. Cộng tiền vé vào nợ của user
                             val currentUserInfo = database.userInfoDao()

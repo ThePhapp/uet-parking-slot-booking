@@ -47,5 +47,14 @@ data class BookingEntity(
     val status: BookingStatus = BookingStatus.PENDING,
 
     @ColumnInfo(name = "createdAt")
-    val createdAt: String // format: yyyy-MM-dd HH:mm:ss
+    val createdAt: String, // format: yyyy-MM-dd HH:mm:ss
+
+    @ColumnInfo(name = "qrCode", defaultValue = "")
+    val qrCode: String = "", // JSON encoded QR content
+
+    @ColumnInfo(name = "checkedInAt", defaultValue = "NULL")
+    val checkedInAt: String? = null, // Thời gian check-in
+
+    @ColumnInfo(name = "isCheckedIn", defaultValue = "0")
+    val isCheckedIn: Boolean = false // Đã check-in chưa
 )
