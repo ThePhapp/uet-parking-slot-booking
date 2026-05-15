@@ -17,6 +17,7 @@ class ParkingRepository(
     suspend fun getUserByEmail(email: String): User? = userDao.getUserByEmail(email)
     fun getUserById(id: Int): Flow<User?> = userDao.getUserById(id)
     suspend fun getUserByIdSuspend(id: Int): User? = userDao.getUserByIdSuspend(id)
+    suspend fun insertUser(user: User) = userDao.insertUser(user)
 
     // SỬA: Gọi sang userInfoDao vì cột 'dept' hiện nằm ở bảng 'user_info'
     suspend fun updateDebt(id: Int, newDebt: Double) = userInfoDao.updateDebt(id, newDebt)
@@ -32,6 +33,7 @@ class ParkingRepository(
     // Admin Info
     fun getAdminInfoById(userId: Int): Flow<AdminInfo?> = adminInfoDao.getAdminInfoById(userId)
     suspend fun insertAdminInfo(adminInfo: AdminInfo) = adminInfoDao.insertAdminInfo(adminInfo)
+    suspend fun incrementKPI(userId: Int) = adminInfoDao.incrementKPI(userId)
 
     // Parking Lot
     fun getAllParkingLots(): Flow<List<ParkingLot>> = parkingLotDao.getAllParkingLots()
