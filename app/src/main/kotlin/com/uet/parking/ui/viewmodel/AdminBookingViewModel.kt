@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.uet.parking.data.model.BookingEntity
 import com.uet.parking.data.model.Ticket
 import com.uet.parking.data.model.enums.BookingStatus
+import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.data.repository.ParkingRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +65,20 @@ class AdminBookingViewModel(private val repository: ParkingRepository) : ViewMod
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 repository.updateBookingStatus(bookingId, BookingStatus.APPROVED.value)
+                
+                // Đồng bộ cập nhật Ticket sang trạng thái CONFIRMED để user thấy
+                val booking = repository.getBookingById(bookingId)
+                if (booking != null) {
+                    val startTime = "${booking.bookingDate} ${booking.bookingTime.split(" - ")[0]}"
+                    val tickets = repository.getAllTickets().first()
+                    val userTicket = tickets.find { it.userId == booking.userId && it.startTime == startTime }
+                    if (userTicket != null) {
+                        userTicket.ticketId?.let { id ->
+                            repository.updateTicketStatus(id, TicketStatus.CONFIRMED.value)
+                        }
+                    }
+                }
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     successMessage = "Đã duyệt booking #$bookingId thành công!",
@@ -85,6 +101,18 @@ class AdminBookingViewModel(private val repository: ParkingRepository) : ViewMod
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 repository.updateBookingStatus(bookingId, BookingStatus.REJECTED.value)
+                
+                // Xoá vé bên phía user nếu admin từ chối
+                val booking = repository.getBookingById(bookingId)
+                if (booking != null) {
+                    val startTime = "${booking.bookingDate} ${booking.bookingTime.split(" - ")[0]}"
+                    val tickets = repository.getAllTickets().first()
+                    val userTicket = tickets.find { it.userId == booking.userId && it.startTime == startTime }
+                    if (userTicket != null) {
+                        repository.deleteTicket(userTicket)
+                    }
+                }
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     successMessage = "Đã từ chối booking #$bookingId",

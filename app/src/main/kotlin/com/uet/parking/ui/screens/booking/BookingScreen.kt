@@ -21,8 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uet.parking.data.local.db.AppDatabase
+import com.uet.parking.data.model.BookingEntity
 import com.uet.parking.data.model.HourlyLoad
 import com.uet.parking.data.model.Ticket
+import com.uet.parking.data.model.enums.BookingStatus
 import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
@@ -196,8 +198,20 @@ fun BookingFormScreen(
                             )
                             
                             // 1. Lưu vé vào DB
-                            // 1. Lưu vé vào DB
                             database.ticketDao().insertTicket(ticket)
+
+                            // 1b. Đồng thời lưu vào bảng booking để admin duyệt
+                            val nowStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                            val bookingEntity = BookingEntity(
+                                userId = userId,
+                                fieldId = 1,
+                                bookingDate = selectedDate,
+                                bookingTime = "$selectedStartTime - $selectedEndTime",
+                                slot = shift,
+                                status = BookingStatus.PENDING,
+                                createdAt = nowStr
+                            )
+                            database.bookingDao().insertBooking(bookingEntity)
 
 // 2. Cộng tiền vé vào nợ của user
                             val currentUserInfo = database.userInfoDao()
