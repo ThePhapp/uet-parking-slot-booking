@@ -10,7 +10,8 @@ class ParkingRepository(
     private val parkingLotDao: ParkingLotDao,
     private val hourlyLoadDao: HourlyLoadDao,
     private val userInfoDao: UserInfoDao,
-    private val adminInfoDao: AdminInfoDao
+    private val adminInfoDao: AdminInfoDao,
+    private val bookingDao: BookingDao? = null
 ) {
     // User
     suspend fun getUserByEmail(email: String): User? = userDao.getUserByEmail(email)
@@ -47,4 +48,41 @@ class ParkingRepository(
     // Hourly Load
     suspend fun getLoad(parkingId: Int, date: String, shift: Int): HourlyLoad? =
         hourlyLoadDao.getLoad(parkingId, date, shift)
-}
+
+    // ==============================
+    // Booking (Đặt sân)
+    // ==============================
+
+    suspend fun insertBooking(booking: BookingEntity): Long =
+        bookingDao?.insertBooking(booking) ?: throw IllegalStateException("BookingDao not initialized")
+
+    fun getAllBookings(): Flow<List<BookingEntity>> =
+        bookingDao?.getAllBookings() ?: throw IllegalStateException("BookingDao not initialized")
+
+    fun getBookingsByUserId(userId: Int): Flow<List<BookingEntity>> =
+        bookingDao?.getBookingsByUserId(userId) ?: throw IllegalStateException("BookingDao not initialized")
+
+    suspend fun getBookingById(bookingId: Int): BookingEntity? =
+        bookingDao?.getBookingById(bookingId)
+
+    suspend fun countBookingsForSlot(fieldId: Int, date: String, slot: Int): Int =
+        bookingDao?.countBookingsForSlot(fieldId, date, slot) ?: 0
+
+    suspend fun countUserBookingsForSlot(userId: Int, date: String, slot: Int): Int =
+        bookingDao?.countUserBookingsForSlot(userId, date, slot) ?: 0
+
+    suspend fun countAllBookingsForSlot(date: String, slot: Int): Int =
+        bookingDao?.countAllBookingsForSlot(date, slot) ?: 0
+
+    suspend fun getFullFieldIds(date: String, slot: Int): List<Int> =
+        bookingDao?.getFullFieldIds(date, slot) ?: emptyList()
+
+    suspend fun updateBookingStatus(bookingId: Int, status: String) =
+        bookingDao?.updateBookingStatus(bookingId, status)
+
+    suspend fun deleteBooking(bookingId: Int) =
+        bookingDao?.deleteBooking(bookingId)
+
+    fun getPendingBookings(): Flow<List<BookingEntity>> =
+        bookingDao?.getPendingBookings() ?: throw IllegalStateException("BookingDao not initialized")
+}

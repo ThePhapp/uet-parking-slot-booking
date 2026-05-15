@@ -55,7 +55,8 @@ fun ParkingLotDetailPage(lotId: Int, onBack: () -> Unit) {
             database.parkingLotDao(),
             database.hourlyLoadDao(),
             database.userInfoDao(),
-            database.adminInfoDao()
+            database.adminInfoDao(),
+            database.bookingDao()
         )
     }
 

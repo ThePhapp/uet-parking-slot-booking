@@ -30,6 +30,7 @@ import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.components.common.AppBottomNavigationBar
 import com.uet.parking.ui.components.common.AppTopBar
 import com.uet.parking.ui.screens.admin.AdminHomepage
+import com.uet.parking.ui.screens.admin.AdminBookingScreen
 import com.uet.parking.ui.screens.admin.ParkingLotDetailPage
 import com.uet.parking.ui.screens.auth.AuthScreen
 import com.uet.parking.ui.screens.home.HomeScreen
@@ -87,7 +88,8 @@ fun MainNavigation() {
             database.parkingLotDao(),
             database.hourlyLoadDao(),
             database.userInfoDao(),
-            database.adminInfoDao()
+            database.adminInfoDao(),
+            database.bookingDao()
         )
     }
 
@@ -120,7 +122,7 @@ fun MainNavigation() {
                         currentRoute == Screen.ADMIN_HOME.route -> "Quản trị bãi đỗ"
                         currentRoute == Screen.PAYMENT.route -> "Thanh toán"
                         currentRoute?.startsWith("admin_detail") == true -> "Chi tiết bãi đỗ"
-                        currentRoute == Screen.ADMIN_BOOKING.route -> "Lịch trình đặt chỗ"
+                        currentRoute == Screen.ADMIN_BOOKING.route -> "Quản lý đặt sân"
                         else -> "Campus Parking"
                     },
                     showBack = currentRoute?.startsWith("admin_detail") == true ||
@@ -266,7 +268,9 @@ fun MainNavigation() {
                 val lotId = backStackEntry.arguments?.getString("lotId")?.toIntOrNull() ?: 0
                 ParkingLotDetailPage(lotId = lotId, onBack = { navController.popBackStack() })
             }
-            composable(Screen.ADMIN_BOOKING.route) { PlaceholderScreen("Lịch trình đặt chỗ (Trống)") }
+            composable(Screen.ADMIN_BOOKING.route) {
+                AdminBookingScreen(userId = currentUserId ?: 0)
+            }
             composable(Screen.ADMIN_SETTINGS.route) {
                 SettingsScreen(
                     userId = currentUserId ?: 0,

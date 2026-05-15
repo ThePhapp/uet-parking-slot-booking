@@ -48,7 +48,8 @@ fun AdminHomepage(
             database.parkingLotDao(),
             database.hourlyLoadDao(),
             database.userInfoDao(),
-            database.adminInfoDao()
+            database.adminInfoDao(),
+            database.bookingDao()
         )
     }
 
