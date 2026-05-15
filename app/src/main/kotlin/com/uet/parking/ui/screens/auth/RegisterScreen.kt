@@ -24,10 +24,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.User
 import com.uet.parking.data.model.UserInfo
 import com.uet.parking.data.model.enums.UserRole
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
 import kotlinx.coroutines.launch
@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun RegisterScreen(
+    repository: ParkingRepository,
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
@@ -46,7 +47,6 @@ fun RegisterScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val database = remember { AppDatabase.getDatabase(context) }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -169,30 +169,26 @@ fun RegisterScreen(
                             }
                             scope.launch {
                                 try {
-                                    val existingUser = database.userDao().getUserByEmail(trimmedEmail)
+                                    val existingUser = repository.getUserByEmail(trimmedEmail)
                                     if (existingUser != null) {
                                         errorText = "Email này đã được đăng ký"
                                     } else {
-                                        // SỬA: Xóa debt khỏi User
                                         val newUser = User(
                                             email = trimmedEmail,
                                             password = password,
                                             name = trimmedName,
                                             role = UserRole.USER
                                         )
-                                        database.userDao().insertUser(newUser)
+                                        val userId = repository.createUser(newUser)
 
-                                        val createdUser = database.userDao().getUserByEmail(trimmedEmail)
-                                        createdUser?.userId?.let { userId ->
-                                            // SỬA: Khởi tạo dept trong UserInfo
-                                            database.userInfoDao().insertUserInfo(UserInfo(userId = userId, debt = 0.0))
-                                        }
+                                        // Khởi tạo thông tin nợ cho User mới
+                                        repository.createUserInfo(UserInfo(userId = userId, debt = 0.0))
 
                                         Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
                                         onRegisterSuccess()
                                     }
                                 } catch (e: Exception) {
-                                    errorText = "Lỗi CSDL: ${e.message}"
+                                    errorText = "Lỗi kết nối: ${e.message}"
                                 }
                             }
                         },

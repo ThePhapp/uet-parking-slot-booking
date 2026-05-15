@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.uet.parking.data.local.db.AppDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.ParkingLot
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.*
@@ -36,21 +36,12 @@ import com.uet.parking.ui.viewmodel.ViewModelFactory
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun AdminHomepage(
-    userId: Int,
-    onNavigateToDetail: (Int) -> Unit
+    userId: String,
+    onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val database = remember { AppDatabase.getDatabase(context) }
-    val repository = remember {
-        ParkingRepository(
-            database.userDao(),
-            database.ticketDao(),
-            database.parkingLotDao(),
-            database.hourlyLoadDao(),
-            database.userInfoDao(),
-            database.adminInfoDao()
-        )
-    }
+    val firestore = remember { FirebaseFirestore.getInstance() }
+    val repository = remember { ParkingRepository(firestore) }
 
     val viewModel: AdminViewModel = viewModel(
         factory = ViewModelFactory(repository, userId)
@@ -96,7 +87,7 @@ fun AdminHomepage(
             }
 
             items(parkingLots) { lot ->
-                ParkingLotCard(lot = lot, onDetailClick = { onNavigateToDetail(lot.parkingId ?: 0) })
+                ParkingLotCard(lot = lot, onDetailClick = { onNavigateToDetail(lot.parkingId ?: "") })
             }
 
             item(span = { GridItemSpan(maxLineSpan) }) {
@@ -229,7 +220,7 @@ private fun StatItem(value: String, label: String) {
 }
 
 @Composable
-fun ParkingLotCard(lot: ParkingLot, onDetailClick: (Int) -> Unit) {
+fun ParkingLotCard(lot: ParkingLot, onDetailClick: (String) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -255,7 +246,7 @@ fun ParkingLotCard(lot: ParkingLot, onDetailClick: (Int) -> Unit) {
             )
             Spacer(modifier = Modifier.height(10.dp))
             Button(
-                onClick = { onDetailClick(lot.parkingId ?: 0) },
+                onClick = { onDetailClick(lot.parkingId ?: "") },
                 modifier = Modifier.fillMaxWidth().height(30.dp),
                 shape = RoundedCornerShape(6.dp),
                 contentPadding = PaddingValues(0.dp)

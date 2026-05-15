@@ -17,29 +17,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.enums.UserRole
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
 import kotlinx.coroutines.launch
+import android.util.Log
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (Int, UserRole) -> Unit,
+    repository: ParkingRepository,
+    onLoginSuccess: (String, UserRole) -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf("") }
     
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val database = remember { AppDatabase.getDatabase(context) }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -131,11 +130,16 @@ fun LoginScreen(
                                 return@Button
                             }
                             scope.launch {
-                                val user = database.userDao().getUserByEmail(trimmedEmail)
-                                if (user != null && user.password == password) {
-                                    onLoginSuccess(user.userId ?: 0, user.role)
-                                } else {
-                                    errorText = "Sai tài khoản hoặc mật khẩu"
+                                try {
+                                    val user = repository.getUserByEmail(trimmedEmail)
+                                    Log.d("AuthDebug", "User password ${user?.password?: 0}")
+                                    if (user != null && user.password == password) {
+                                        onLoginSuccess(user.userId ?: "", user.role)
+                                    } else {
+                                        errorText = "Sai tài khoản hoặc mật khẩu"
+                                    }
+                                } catch (e: Exception) {
+                                    errorText = "Lỗi kết nối: ${e.message}"
                                 }
                             }
                         },

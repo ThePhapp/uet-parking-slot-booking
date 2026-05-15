@@ -8,10 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.uet.parking.data.local.db.AppDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.components.common.AppBottomNavigationBar
@@ -39,11 +36,8 @@ import com.uet.parking.ui.screens.booking.SearchingScreen
 import com.uet.parking.ui.screens.booking.SuccessScreen
 import com.uet.parking.ui.screens.booking.TicketScreen
 import com.uet.parking.ui.theme.ParkingTheme
-import com.uet.parking.ui.viewmodel.HomeViewModel
-import com.uet.parking.ui.viewmodel.HomeViewModelFactory
+import com.uet.parking.ui.viewmodel.*
 import com.uet.parking.ui.screens.payment.PaymentScreen
-import com.uet.parking.ui.viewmodel.PaymentViewModel
-import com.uet.parking.ui.viewmodel.PaymentViewModelFactory
 
 enum class Screen(val route: String) {
     AUTH("auth"),
@@ -57,7 +51,6 @@ enum class Screen(val route: String) {
     ADMIN_DETAIL("admin_detail/{lotId}"),
     ADMIN_BOOKING("admin_booking"),
     ADMIN_SETTINGS("admin_settings"),
-
     PAYMENT("payment")
 }
 
@@ -78,21 +71,11 @@ fun MainNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val database = remember { AppDatabase.getDatabase(context) }
-    val repository = remember {
-        ParkingRepository(
-            database.userDao(),
-            database.ticketDao(),
-            database.parkingLotDao(),
-            database.hourlyLoadDao(),
-            database.userInfoDao(),
-            database.adminInfoDao()
-        )
-    }
+    val firestore = remember { FirebaseFirestore.getInstance() }
+    val repository = remember { ParkingRepository(firestore) }
 
     var userRole by remember { mutableStateOf<UserRole?>(null) }
-    var currentUserId by remember { mutableStateOf<Int?>(null) }
+    var currentUserId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(currentRoute) {
         if (currentRoute == Screen.AUTH.route) {
@@ -100,7 +83,7 @@ fun MainNavigation() {
             currentUserId = null
         }
         else if (currentRoute?.startsWith("admin") == true) userRole = UserRole.ADMIN
-        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route)) userRole = UserRole.USER
+        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route, Screen.PAYMENT.route)) userRole = UserRole.USER
     }
 
     val isAdmin = userRole == UserRole.ADMIN
@@ -190,20 +173,23 @@ fun MainNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.AUTH.route) {
-                AuthScreen(onLoginSuccess = { userId, role ->
-                    currentUserId = userId
-                    userRole = role
-                    val startRoute = if (role == UserRole.ADMIN) Screen.ADMIN_HOME.route else Screen.HOME.route
-                    navController.navigate(startRoute) {
-                        popUpTo(Screen.AUTH.route) { inclusive = true }
+                AuthScreen(
+                    repository = repository,
+                    onLoginSuccess = { userId, role ->
+                        currentUserId = userId
+                        userRole = role
+                        val startRoute = if (role == UserRole.ADMIN) Screen.ADMIN_HOME.route else Screen.HOME.route
+                        navController.navigate(startRoute) {
+                            popUpTo(Screen.AUTH.route) { inclusive = true }
+                        }
                     }
-                })
+                )
             }
 
             composable(Screen.HOME.route) {
-                val userId = currentUserId ?: 0
+                val userId = currentUserId ?: ""
                 val homeViewModel: HomeViewModel = viewModel(
-                    factory = HomeViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId)
                 )
                 HomeScreen(
                     viewModel = homeViewModel,
@@ -214,9 +200,9 @@ fun MainNavigation() {
             }
 
             composable(Screen.PAYMENT.route) {
-                val userId = currentUserId ?: 0
+                val userId = currentUserId ?: ""
                 val paymentViewModel: PaymentViewModel = viewModel(
-                    factory = PaymentViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId)
                 )
 
                 PaymentScreen(
@@ -230,52 +216,76 @@ fun MainNavigation() {
             }
 
             composable(Screen.BOOKING.route) {
+                val userId = currentUserId ?: ""
+                val bookingViewModel: BookingViewModel = viewModel(
+                    factory = ViewModelFactory(repository, userId)
+                )
                 BookingFormScreen(
-                    userId = currentUserId ?: 0,
+                    viewModel = bookingViewModel,
                     onContinue = { _, _, _ -> navController.navigate(Screen.SEARCHING.route) }
                 )
             }
-            composable(Screen.SEARCHING.route) { SearchingScreen(onNavigateToSuccess = { navController.navigate(Screen.SUCCESS.route) { popUpTo(Screen.BOOKING.route) { inclusive = true } } }) }
+            
+            composable(Screen.SEARCHING.route) { 
+                SearchingScreen(onNavigateToSuccess = { 
+                    navController.navigate(Screen.SUCCESS.route) { 
+                        popUpTo(Screen.BOOKING.route) { inclusive = true } 
+                    } 
+                }) 
+            }
+            
             composable(Screen.SUCCESS.route) {
+                val userId = currentUserId ?: ""
+                val bookingViewModel: BookingViewModel = viewModel(
+                    factory = ViewModelFactory(repository, userId)
+                )
                 SuccessScreen(
-                    userId = currentUserId ?: 0,
+                    viewModel = bookingViewModel,
                     onGoHome = { navController.navigate(Screen.HOME.route) { popUpTo(Screen.HOME.route) { inclusive = true } } }
                 )
             }
+            
             composable(Screen.TICKETS.route) {
-                TicketScreen(userId = currentUserId ?: 0)
+                val userId = currentUserId ?: ""
+                val bookingViewModel: BookingViewModel = viewModel(
+                    factory = ViewModelFactory(repository, userId)
+                )
+                TicketScreen(viewModel = bookingViewModel)
             }
+            
             composable(Screen.SETTINGS.route) {
+                val userId = currentUserId ?: ""
                 SettingsScreen(
-                    userId = currentUserId ?: 0,
+                    userId = userId,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(0) } }
+                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(Screen.AUTH.route) { inclusive = true } } }
                 )
             }
 
             // --- Admin Routes ---
             composable(Screen.ADMIN_HOME.route) {
                 AdminHomepage(
-                    userId = currentUserId ?: 0,
+                    userId = currentUserId ?: "",
                     onNavigateToDetail = { id ->
-                        navController.navigate(Screen.ADMIN_DETAIL.route.replace("{lotId}", id.toString()))
+                        navController.navigate(Screen.ADMIN_DETAIL.route.replace("{lotId}", id))
                     }
                 )
             }
             composable(Screen.ADMIN_DETAIL.route) { backStackEntry ->
-                val lotId = backStackEntry.arguments?.getString("lotId")?.toIntOrNull() ?: 0
+                val lotId = backStackEntry.arguments?.getString("lotId") ?: ""
                 ParkingLotDetailPage(
                     lotId = lotId,
-                    adminId = currentUserId ?: 0, // Truyền adminId tại đây
+                    adminId = currentUserId ?: "",
                     onBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.ADMIN_BOOKING.route) { PlaceholderScreen("Lịch trình đặt chỗ (Trống)") }
             composable(Screen.ADMIN_SETTINGS.route) {
+                val userId = currentUserId ?: ""
                 SettingsScreen(
-                    userId = currentUserId ?: 0,
+                    userId = userId,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(0) } }
+                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(Screen.AUTH.route) { inclusive = true } } }
                 )
             }
         }

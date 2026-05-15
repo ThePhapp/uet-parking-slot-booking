@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 
 class AdminViewModel(
     private val repository: ParkingRepository,
-    private val userId: Int
+    private val userId: String
 ) : ViewModel() {
 
     val adminProfile: StateFlow<AdminWithProfile?> = repository.getAdminWithProfile(userId)

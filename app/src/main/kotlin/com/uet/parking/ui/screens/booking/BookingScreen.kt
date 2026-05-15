@@ -19,44 +19,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
-import com.uet.parking.data.model.HourlyLoad
-import com.uet.parking.data.model.Ticket
-import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.layout.BoxWithConstraints
+import com.uet.parking.ui.viewmodel.BookingViewModel
 
 @Composable
 fun BookingFormScreen(
-    userId: Int,
+    viewModel: BookingViewModel,
     onContinue: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
-    var selectedDate      by remember { mutableStateOf(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())) }
-    var selectedStartTime by remember { mutableStateOf("07:00") }
-    var selectedEndTime   by remember { mutableStateOf("09:00") }
-    var errorMessage      by remember { mutableStateOf("") }
-
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val database = remember { AppDatabase.getDatabase(context) }
-
-    val startSlots = listOf(
-        "Ca 1 — 07:00" to "07:00",
-        "Ca 2 — 09:15" to "09:15",
-        "Ca 3 — 12:30" to "12:30",
-        "Ca 4 — 15:15" to "15:15"
-    )
-    val endSlots = listOf(
-        "Ca 1 — 09:00" to "09:00",
-        "Ca 2 — 11:15" to "11:15",
-        "Ca 3 — 14:30" to "14:30",
-        "Ca 4 — 17:15" to "17:15"
-    )
+    val uiState by viewModel.bookingUiState.collectAsState()
+    val startSlots by viewModel.startTimeSlots.collectAsState()
+    val endSlots by viewModel.endTimeSlots.collectAsState()
 
     BoxWithConstraints(
         modifier = Modifier
@@ -64,7 +41,6 @@ fun BookingFormScreen(
             .background(BackgroundGray)
     ) {
         val width = this.maxWidth
-        val isWide = width > 800.dp
         val horizontalPadding = if (width > 1000.dp) (width - 1000.dp) / 2 + 24.dp else 16.dp
 
         Column(
@@ -102,42 +78,27 @@ fun BookingFormScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Lịch chọn ngày (Hàng ngang - Tuần này)
+            // Lịch chọn ngày
             SectionLabel("Chọn ngày")
             WeekCalendarView(
-                selectedDate = selectedDate,
-                onDateSelected = { selectedDate = it; errorMessage = "" }
+                selectedDate = uiState.selectedDate,
+                onDateSelected = { viewModel.selectDate(it) }
             )
 
             Spacer(Modifier.height(24.dp))
 
-            if (isWide) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        TimeSelectionSection(
-                            startSlots = startSlots,
-                            selectedStartTime = selectedStartTime,
-                            onStartSelect = { selectedStartTime = it; errorMessage = "" },
-                            endSlots = endSlots,
-                            selectedEndTime = selectedEndTime,
-                            onEndSelect = { selectedEndTime = it; errorMessage = "" }
-                        )
-                    }
-                }
-            } else {
-                TimeSelectionSection(
-                    startSlots = startSlots,
-                    selectedStartTime = selectedStartTime,
-                    onStartSelect = { selectedStartTime = it; errorMessage = "" },
-                    endSlots = endSlots,
-                    selectedEndTime = selectedEndTime,
-                    onEndSelect = { selectedEndTime = it; errorMessage = "" }
-                )
-            }
+            TimeSelectionSection(
+                startSlots = startSlots,
+                selectedStartTime = uiState.selectedStartTime,
+                onStartSelect = { viewModel.selectStartTime(it) },
+                endSlots = endSlots,
+                selectedEndTime = uiState.selectedEndTime,
+                onEndSelect = { viewModel.selectEndTime(it) }
+            )
             
-            if (errorMessage.isNotEmpty()) {
+            if (uiState.errorMessage.isNotEmpty()) {
                 Text(
-                    text = errorMessage,
+                    text = uiState.errorMessage,
                     color = Color.Red,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(top = 16.dp).fillMaxWidth()
@@ -148,88 +109,11 @@ fun BookingFormScreen(
 
             Button(
                 onClick = {
-                    val fullSdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                    val newStart = fullSdf.parse("$selectedDate $selectedStartTime")
-                    val newEnd = fullSdf.parse("$selectedDate $selectedEndTime")
-
-                    if (newStart != null && newEnd != null && !newStart.before(newEnd)) {
-                        errorMessage = "Giờ bắt đầu phải sớm hơn giờ kết thúc"
-                        return@Button
-                    }
-
-                    scope.launch {
-                        try {
-                            val existingTickets = database.ticketDao().getTicketsByUserId(userId).first()
-                            
-                            val isOverlapping = existingTickets.any { ticket ->
-                                val ticketStart = fullSdf.parse(ticket.startTime ?: "")
-                                val ticketEnd = fullSdf.parse(ticket.endTime ?: "")
-                                
-                                if (ticketStart != null && ticketEnd != null && newStart != null && newEnd != null) {
-                                    newStart.before(ticketEnd) && newEnd.after(ticketStart)
-                                } else false
-                            }
-
-                            if (isOverlapping) {
-                                errorMessage = "Thời gian này trùng với một vé bạn đã đặt trước đó"
-                                return@launch
-                            }
-
-                            // Xác định "Ca" (Shift) để cập nhật HourlyLoad
-                            val shift = when(selectedStartTime) {
-                                "07:00" -> 1
-                                "09:15" -> 2
-                                "12:30" -> 3
-                                "15:15" -> 4
-                                else -> 1
-                            }
-
-                            val ticket = Ticket(
-                                userId = userId,
-                                parkingId = 1,
-                                startTime = "$selectedDate $selectedStartTime",
-                                endTime = "$selectedDate $selectedEndTime",
-                                status = TicketStatus.PENDING,
-                                price = 10000.0
-                            )
-                            
-                            // 1. Lưu vé vào DB
-                            // 1. Lưu vé vào DB
-                            database.ticketDao().insertTicket(ticket)
-
-// 2. Cộng tiền vé vào nợ của user
-                            val currentUserInfo = database.userInfoDao()
-                                .getUserInfoById(userId)
-                                .first()
-
-                            val currentDebt = currentUserInfo?.debt ?: 0.0
-
-                            database.userInfoDao().updateDebt(
-                                userId,
-                                currentDebt + (ticket.price ?: 0.0)
-                            )
-
-// 3. Cập nhật bảng HourlyLoad
-                            val currentLoad = database.hourlyLoadDao().getLoad(1, selectedDate, shift)
-                            if (currentLoad == null) {
-                                database.hourlyLoadDao().insertOrUpdate(
-                                    HourlyLoad(
-                                        parkingId = 1,
-                                        date = selectedDate,
-                                        shift = shift,
-                                        vehicleCount = 1
-                                    )
-                                )
-                            } else {
-                                database.hourlyLoadDao().incrementVehicleCount(1, selectedDate, shift)
-                            }
-
-                            onContinue(selectedDate, selectedStartTime, selectedEndTime)
-                        } catch (e: Exception) {
-                            errorMessage = "Lỗi hệ thống: ${e.message}"
-                        }
+                    viewModel.createBooking {
+                        onContinue(uiState.selectedDate, uiState.selectedStartTime, uiState.selectedEndTime)
                     }
                 },
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .widthIn(max = 600.dp)
@@ -238,7 +122,11 @@ fun BookingFormScreen(
                 shape  = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
-                Text("Tiếp tục →", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Tiếp tục →", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
             }
             
             Spacer(Modifier.height(40.dp))
@@ -255,7 +143,6 @@ fun WeekCalendarView(selectedDate: String, onDateSelected: (String) -> Unit) {
     val weekDays = remember {
         val days = mutableListOf<Date>()
         val cal = Calendar.getInstance()
-        // Tạo danh sách 7 ngày từ hôm nay
         for (i in 0 until 7) {
             days.add(cal.time)
             cal.add(Calendar.DATE, 1)

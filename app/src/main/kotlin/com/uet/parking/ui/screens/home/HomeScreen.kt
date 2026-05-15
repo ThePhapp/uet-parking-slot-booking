@@ -1,9 +1,11 @@
 package com.uet.parking.ui.screens.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,11 +18,9 @@ import com.uet.parking.ui.components.DebtCard
 import com.uet.parking.ui.components.EventCard
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
+import com.uet.parking.ui.viewmodel.HomeViewModel
 import java.text.NumberFormat
 import java.util.Locale
-import androidx.compose.foundation.shape.RoundedCornerShape
-import com.uet.parking.ui.viewmodel.HomeViewModel
-import androidx.compose.foundation.clickable
 
 data class EventUiModel(
     val title: String,
@@ -35,7 +35,7 @@ fun HomeScreen(
     onBookNow: () -> Unit = {},
     onPaymentClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
-){
+) {
     val userWithProfile by viewModel.userProfile.collectAsState()
     val paymentUiState by viewModel.paymentUiState.collectAsState()
 
@@ -66,19 +66,18 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
-            // Thẻ Nợ (DebtCard)
             item {
                 userWithProfile?.let { data ->
                     val user = data.user
                     val info = data.info
-                    // SỬA: Đổi dept thành debt và mặc định là 0.0
-                    val rawDebt = info?.debt ?: 0.0
+                    
+                    val rawDebt = info?.let {
+                        if (it.debt != 0.0) it.debt else 0.0
+                    } ?: 0.0
 
                     val formattedDebt = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
                         .format(rawDebt)
 
-                    // Email là non-null nên không cần safe call
                     val studentCode = user.email.substringBefore("@").uppercase()
 
                     DebtCard(
@@ -109,8 +108,6 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-
-                        // Nút Đặt xe
                         Card(
                             modifier = Modifier
                                 .weight(1f)
@@ -120,100 +117,56 @@ fun HomeScreen(
                             colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
+                                modifier = Modifier.fillMaxSize().padding(16.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(
-                                    text = "🚗",
-                                    fontSize = 28.sp
-                                )
-
-                                Text(
-                                    text = "Đặt xe",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
+                                Text("🚗", fontSize = 28.sp)
+                                Text("Đặt xe", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
                         }
 
-                        // Nút Thanh toán
                         Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(100.dp)
                                 .clickable {
-                                    if (rawDebt > 0.0) {
-                                        onPaymentClick()
-                                    } else {
-                                        viewModel.payDebt(rawDebt)
-                                    }
+                                    if (rawDebt > 0.0) onPaymentClick()
+                                    else viewModel.payDebt(rawDebt)
                                 },
                             shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
+                                modifier = Modifier.fillMaxSize().padding(16.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(
-                                    text = "💳",
-                                    fontSize = 28.sp
-                                )
-
-                                Text(
-                                    text = "Thanh toán",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
+                                Text("💳", fontSize = 28.sp)
+                                Text("Thanh toán", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
                         }
                     }
-
                     Spacer(modifier = Modifier.height(24.dp))
                 }
             }
 
-            // Tiêu đề sự kiện
             item { HomeSectionHeader() }
 
-            // Danh sách sự kiện
             items(events) { event ->
                 EventCard(event = event)
             }
-
             item { Spacer(modifier = Modifier.height(12.dp)) }
         }
 
         if (paymentUiState.showDialog) {
             AlertDialog(
-                onDismissRequest = {
-                    viewModel.dismissPaymentDialog()
-                },
+                onDismissRequest = { viewModel.dismissPaymentDialog() },
                 confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.dismissPaymentDialog()
-                        }
-                    ) {
+                    TextButton(onClick = { viewModel.dismissPaymentDialog() }) {
                         Text("Đóng")
                     }
                 },
-                title = {
-                    Text(
-                        text = if (paymentUiState.isSuccess) {
-                            "Thanh toán thành công"
-                        } else {
-                            "Thanh toán thất bại"
-                        }
-                    )
-                },
-                text = {
-                    Text(text = paymentUiState.message)
-                }
+                title = { Text(if (paymentUiState.isSuccess) "Thanh toán thành công" else "Thanh toán thất bại") },
+                text = { Text(paymentUiState.message) }
             )
         }
     }
@@ -227,24 +180,9 @@ private fun HomeSectionHeader() {
         verticalAlignment = Alignment.Bottom
     ) {
         Column {
-            Text(
-                text = "THÔNG BÁO MỚI",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryBlue,
-                letterSpacing = 1.sp
-            )
-            Text(
-                text = "Sự kiện trường học",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
-            )
+            Text("THÔNG BÁO MỚI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue, letterSpacing = 1.sp)
+            Text("Sự kiện trường học", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold))
         }
-
-        Text(
-            text = "Xem tất cả",
-            color = PrimaryBlue,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
-        )
+        Text("Xem tất cả", color = PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
 }

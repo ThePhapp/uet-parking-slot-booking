@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.uet.parking.data.local.db.AppDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.ParkingLot
 import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.data.repository.ParkingRepository
@@ -45,19 +45,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ParkingLotDetailPage(lotId: Int, adminId: Int, onBack: () -> Unit) {
+fun ParkingLotDetailPage(lotId: String, adminId: String, onBack: () -> Unit) {
     val context = LocalContext.current
-    val database = remember { AppDatabase.getDatabase(context) }
-    val repository = remember { 
-        ParkingRepository(
-            database.userDao(),
-            database.ticketDao(),
-            database.parkingLotDao(),
-            database.hourlyLoadDao(),
-            database.userInfoDao(),
-            database.adminInfoDao()
-        )
-    }
+    val firestore = remember { FirebaseFirestore.getInstance() }
+    val repository = remember { ParkingRepository(firestore) }
 
     val viewModel: ParkingLotDetailViewModel = viewModel(
         factory = ParkingLotDetailViewModelFactory(repository, lotId, adminId)

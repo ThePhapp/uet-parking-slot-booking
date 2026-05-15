@@ -29,20 +29,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.ParkingLot
 import com.uet.parking.data.model.Ticket
 import com.uet.parking.data.model.enums.TicketStatus
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
-import kotlinx.coroutines.launch
+import com.uet.parking.ui.viewmodel.BookingViewModel
 
 @Composable
-fun TicketScreen(userId: Int) {
+fun TicketScreen(viewModel: BookingViewModel) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val database = remember { AppDatabase.getDatabase(context) }
-    val tickets by database.ticketDao().getTicketsByUserId(userId).collectAsState(initial = emptyList())
+    val tickets by viewModel.userTickets.collectAsState()
+    
+    val firestore = remember { FirebaseFirestore.getInstance() }
+    val repository = remember { ParkingRepository(firestore) }
     
     var showDeleteDialog by remember { mutableStateOf(false) }
     var ticketToDelete by remember { mutableStateOf<Ticket?>(null) }
@@ -67,11 +69,11 @@ fun TicketScreen(userId: Int) {
                     
                     LaunchedEffect(ticket.parkingId) {
                         ticket.parkingId?.let { id ->
-                            parkingLot = database.parkingLotDao().getParkingLotById(id)
+                            parkingLot = repository.getParkingLotById(id)
                         }
                     }
 
-                    val ticketCode = "PKG-${ticket.ticketId}-UET"
+                    val ticketCode = "PKG-${ticket.ticketId ?: "N/A"}-UET"
 
                     TicketItem(
                         ticket = ticket,
@@ -98,12 +100,11 @@ fun TicketScreen(userId: Int) {
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            ticketToDelete?.let { ticket ->
-                                scope.launch {
-                                    database.ticketDao().deleteTicket(ticket)
-                                    showDeleteDialog = false
-                                    ticketToDelete = null
-                                }
+                            // FIX: Sử dụng ticketId (String) thay vì đối tượng Ticket
+                            ticketToDelete?.ticketId?.let { id ->
+                                viewModel.deleteTicket(id)
+                                showDeleteDialog = false
+                                ticketToDelete = null
                             }
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFBA1A1A))
@@ -131,7 +132,6 @@ fun TicketItem(
     onDeleteClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // Không cho phép xóa nếu vé đang In Progress
     val canDelete = ticket.status != TicketStatus.IN_PROGRESS
 
     Card(
@@ -150,7 +150,7 @@ fun TicketItem(
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Mã vé: PKG-${ticket.ticketId}-UET",
+                            text = "Mã vé: PKG-${ticket.ticketId ?: "N/A"}-UET",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = PrimaryBlue
@@ -170,7 +170,7 @@ fun TicketItem(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Ngày: ${ticket.startTime?.substringBefore(" ")}",
+                        text = "Ngày: ${ticket.startTime?.substringBefore(" ") ?: "---"}",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
@@ -183,7 +183,6 @@ fun TicketItem(
                         Icon(Icons.Default.Delete, "Xóa", tint = Color(0xFFBA1A1A))
                     }
                 } else {
-                    // Hiển thị icon khóa hoặc placeholder nếu không cho xóa
                     IconButton(onClick = { }, enabled = false) {
                         Icon(Icons.Default.Lock, "Đang sử dụng", tint = Color.LightGray)
                     }
@@ -201,9 +200,9 @@ fun TicketItem(
                     
                     DetailRow(Icons.Default.LocalParking, "Bãi xe", parkingLot?.name ?: "Đang tải...")
                     Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(Icons.Default.LocationOn, "Địa chỉ", parkingLot?.address ?: "Đang tải...")
+                    DetailRow(Icons.Default.LocationOn, "Địa chỉ", parkingLot?.address ?: "---")
                     Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(Icons.Default.ConfirmationNumber, "Khung giờ", "${ticket.startTime?.substringAfter(" ")} - ${ticket.endTime?.substringAfter(" ")}")
+                    DetailRow(Icons.Default.ConfirmationNumber, "Khung giờ", "${ticket.startTime?.substringAfter(" ") ?: "---"} - ${ticket.endTime?.substringAfter(" ") ?: "---"}")
                 }
             }
         }

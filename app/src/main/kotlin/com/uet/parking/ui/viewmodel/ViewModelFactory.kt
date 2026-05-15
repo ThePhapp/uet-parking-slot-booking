@@ -6,7 +6,7 @@ import com.uet.parking.data.repository.ParkingRepository
 
 class ViewModelFactory(
     private val repository: ParkingRepository,
-    private val userId: Int
+    private val userId: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
@@ -22,21 +22,29 @@ class ViewModelFactory(
                 @Suppress("UNCHECKED_CAST")
                 BookingViewModel(repository, userId) as T
             }
-            else -> throw IllegalArgumentException("Unknown ViewModel class")
+            modelClass.isAssignableFrom(HomeViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                HomeViewModel(repository, userId) as T
+            }
+            modelClass.isAssignableFrom(PaymentViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                PaymentViewModel(repository, userId) as T
+            }
+            else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }
 }
 
 class ParkingLotDetailViewModelFactory(
     private val repository: ParkingRepository,
-    private val lotId: Int,
-    private val adminId: Int
+    private val lotId: String,
+    private val adminId: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ParkingLotDetailViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return ParkingLotDetailViewModel(repository, lotId, adminId) as T
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }

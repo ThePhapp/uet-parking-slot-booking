@@ -17,45 +17,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.ParkingLot
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.PrimaryFixed
-import kotlinx.coroutines.launch
-import com.uet.parking.data.model.UserInfo
+import com.uet.parking.ui.viewmodel.BookingViewModel
 
 @Composable
 fun SuccessScreen(
-    userId: Int,
-    onGoHome:          () -> Unit
+    viewModel: BookingViewModel,
+    onGoHome: () -> Unit
 ) {
-    val context = LocalContext.current
-    val database = remember { AppDatabase.getDatabase(context) }
-    
-    val tickets by database.ticketDao().getTicketsByUserId(userId).collectAsState(initial = emptyList())
+    val tickets by viewModel.userTickets.collectAsState()
     val latestTicket = tickets.lastOrNull()
     
+    // Sử dụng repository để lấy thông tin bãi đỗ
+    val firestore = remember { FirebaseFirestore.getInstance() }
+    val repository = remember { ParkingRepository(firestore) }
     var parkingLot by remember { mutableStateOf<ParkingLot?>(null) }
 
-    var hasAddedDebt by remember { mutableStateOf(false) }
-
-    LaunchedEffect(latestTicket) {
-        if (latestTicket != null && !hasAddedDebt) {
-            val currentDebt = database.userInfoDao()
-                .getUserInfoById(userId)
-            hasAddedDebt = true
-        }
-    }
-    
     LaunchedEffect(latestTicket) {
         latestTicket?.parkingId?.let { id ->
-            parkingLot = database.parkingLotDao().getParkingLotById(id)
+            parkingLot = repository.getParkingLotById(id)
         }
     }
 
@@ -63,7 +51,7 @@ fun SuccessScreen(
     val date = fullStartTime.substringBefore(" ", "---")
     val startTime = fullStartTime.substringAfter(" ", "---")
     val endTime = latestTicket?.endTime?.substringAfter(" ", "---") ?: "---"
-    val ticketCode = "PKG-${latestTicket?.ticketId ?: 0}-UET"
+    val ticketCode = "PKG-${latestTicket?.ticketId ?: "0"}-UET"
 
     val iconScale by animateFloatAsState(
         targetValue   = 1f,
@@ -86,7 +74,6 @@ fun SuccessScreen(
 
             Text("Đặt chỗ thành công!", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF11131F))
             
-            // Thông tin bãi đỗ nổi bật
             if (parkingLot != null) {
                 Card(
                     modifier = Modifier.padding(16.dp).fillMaxWidth(),
