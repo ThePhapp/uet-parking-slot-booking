@@ -299,7 +299,12 @@ fun MainNavigation() {
                 )
             }
             composable(Screen.ADMIN_BOOKING.route) {
-                AdminBookingScreen(userId = currentUserId ?: 0)
+                AdminBookingScreen(
+                    userId = currentUserId ?: 0,
+                    onNavigateToQrScan = {
+                        navController.navigate(Screen.ADMIN_QR_SCAN.route)
+                    }
+                )
             }
             composable(Screen.ADMIN_QR_SCAN.route) {
                 AdminQrScanScreen(onBack = { navController.popBackStack() })

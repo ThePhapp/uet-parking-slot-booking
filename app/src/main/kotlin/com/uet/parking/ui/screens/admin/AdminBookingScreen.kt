@@ -187,6 +187,22 @@ fun AdminBookingScreen(userId: Int, onNavigateToQrScan: () -> Unit = {}) {
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // Floating Action Button - Scan QR
+        FloatingActionButton(
+            onClick = onNavigateToQrScan,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(24.dp),
+            containerColor = PrimaryBlue,
+            contentColor = Color.White
+        ) {
+            Icon(
+                Icons.Default.QrCodeScanner,
+                contentDescription = "Quét QR Code",
+                modifier = Modifier.size(28.dp)
+            )
+        }
     }
 }
 
