@@ -13,13 +13,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -40,11 +40,13 @@ import com.uet.parking.ui.screens.booking.SearchingScreen
 import com.uet.parking.ui.screens.booking.SuccessScreen
 import com.uet.parking.ui.screens.booking.TicketScreen
 import com.uet.parking.ui.theme.ParkingTheme
-import com.uet.parking.ui.viewmodel.HomeViewModel
-import com.uet.parking.ui.viewmodel.HomeViewModelFactory
 import com.uet.parking.ui.screens.payment.PaymentScreen
+import com.uet.parking.ui.viewmodel.AdminViewModel
+import com.uet.parking.ui.viewmodel.HomeViewModel
 import com.uet.parking.ui.viewmodel.PaymentViewModel
-import com.uet.parking.ui.viewmodel.PaymentViewModelFactory
+import com.uet.parking.ui.viewmodel.AuthViewModel
+import com.uet.parking.ui.viewmodel.SettingsViewModel
+import com.uet.parking.ui.viewmodel.ViewModelFactory
 
 enum class Screen(val route: String) {
     AUTH("auth"),
@@ -58,7 +60,6 @@ enum class Screen(val route: String) {
     ADMIN_DETAIL("admin_detail/{lotId}"),
     ADMIN_BOOKING("admin_booking"),
     ADMIN_SETTINGS("admin_settings"),
-
     PAYMENT("payment")
 }
 
@@ -93,12 +94,12 @@ fun MainNavigation() {
         )
     }
 
-    var userRole by remember { mutableStateOf<UserRole?>(null) }
-    var currentUserId by remember { mutableStateOf<Int?>(null) }
+    var userRole by rememberSaveable { mutableStateOf<UserRole?>(null) }
+    var currentUserId by rememberSaveable { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(currentRoute) {
-        if (currentRoute == Screen.AUTH.route) {
-            userRole = null
+        // Chỉ reset khi quay lại màn hình AUTH và không còn role (đã logout)
+        if (currentRoute == Screen.AUTH.route && userRole == null) {
             currentUserId = null
         }
         else if (currentRoute?.startsWith("admin") == true) userRole = UserRole.ADMIN
@@ -192,20 +193,26 @@ fun MainNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.AUTH.route) {
-                AuthScreen(onLoginSuccess = { userId, role ->
-                    currentUserId = userId
-                    userRole = role
-                    val startRoute = if (role == UserRole.ADMIN) Screen.ADMIN_HOME.route else Screen.HOME.route
-                    navController.navigate(startRoute) {
-                        popUpTo(Screen.AUTH.route) { inclusive = true }
+                val authViewModel: AuthViewModel = viewModel(
+                    factory = ViewModelFactory(repository, 0)
+                )
+                AuthScreen(
+                    viewModel = authViewModel,
+                    onLoginSuccess = { userId, role ->
+                        currentUserId = userId
+                        userRole = role
+                        val startRoute = if (role == UserRole.ADMIN) Screen.ADMIN_HOME.route else Screen.HOME.route
+                        navController.navigate(startRoute) {
+                            popUpTo(Screen.AUTH.route) { inclusive = true }
+                        }
                     }
-                })
+                )
             }
 
             composable(Screen.HOME.route) {
                 val userId = currentUserId ?: 0
                 val homeViewModel: HomeViewModel = viewModel(
-                    factory = HomeViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId)
                 )
                 HomeScreen(
                     viewModel = homeViewModel,
@@ -218,9 +225,8 @@ fun MainNavigation() {
             composable(Screen.PAYMENT.route) {
                 val userId = currentUserId ?: 0
                 val paymentViewModel: PaymentViewModel = viewModel(
-                    factory = PaymentViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId)
                 )
-
                 PaymentScreen(
                     viewModel = paymentViewModel,
                     onBackHome = {
@@ -237,21 +243,38 @@ fun MainNavigation() {
                     onContinue = { _, _, _ -> navController.navigate(Screen.SEARCHING.route) }
                 )
             }
-            composable(Screen.SEARCHING.route) { SearchingScreen(onNavigateToSuccess = { navController.navigate(Screen.SUCCESS.route) { popUpTo(Screen.BOOKING.route) { inclusive = true } } }) }
+            composable(Screen.SEARCHING.route) { 
+                SearchingScreen(onNavigateToSuccess = { 
+                    navController.navigate(Screen.SUCCESS.route) { 
+                        popUpTo(Screen.BOOKING.route) { inclusive = true } 
+                    } 
+                }) 
+            }
             composable(Screen.SUCCESS.route) {
                 SuccessScreen(
                     userId = currentUserId ?: 0,
-                    onGoHome = { navController.navigate(Screen.HOME.route) { popUpTo(Screen.HOME.route) { inclusive = true } } }
+                    onGoHome = { 
+                        navController.navigate(Screen.HOME.route) { 
+                            popUpTo(Screen.HOME.route) { inclusive = true } 
+                        } 
+                    }
                 )
             }
             composable(Screen.TICKETS.route) {
                 TicketScreen(userId = currentUserId ?: 0)
             }
             composable(Screen.SETTINGS.route) {
+                val userId = currentUserId ?: 0
+                val settingsViewModel: SettingsViewModel = viewModel(
+                    factory = ViewModelFactory(repository, userId)
+                )
                 SettingsScreen(
-                    userId = currentUserId ?: 0,
+                    viewModel = settingsViewModel,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(0) } }
+                    onLogoutClick = { 
+                        userRole = null
+                        navController.navigate(Screen.AUTH.route) { popUpTo(0) } 
+                    }
                 )
             }
 
@@ -266,16 +289,27 @@ fun MainNavigation() {
             }
             composable(Screen.ADMIN_DETAIL.route) { backStackEntry ->
                 val lotId = backStackEntry.arguments?.getString("lotId")?.toIntOrNull() ?: 0
-                ParkingLotDetailPage(lotId = lotId, onBack = { navController.popBackStack() })
+                ParkingLotDetailPage(
+                    lotId = lotId,
+                    adminId = currentUserId ?: 0,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.ADMIN_BOOKING.route) {
                 AdminBookingScreen(userId = currentUserId ?: 0)
             }
             composable(Screen.ADMIN_SETTINGS.route) {
+                val userId = currentUserId ?: 0
+                val settingsViewModel: SettingsViewModel = viewModel(
+                    factory = ViewModelFactory(repository, userId)
+                )
                 SettingsScreen(
-                    userId = currentUserId ?: 0,
+                    viewModel = settingsViewModel,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(0) } }
+                    onLogoutClick = { 
+                        userRole = null
+                        navController.navigate(Screen.AUTH.route) { popUpTo(0) } 
+                    }
                 )
             }
         }

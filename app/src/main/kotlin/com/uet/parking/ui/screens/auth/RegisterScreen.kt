@@ -30,30 +30,31 @@ import com.uet.parking.data.model.UserInfo
 import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
+import com.uet.parking.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    viewModel: AuthViewModel
 ) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var errorText by remember { mutableStateOf("") }
-
+    val errorText by viewModel.errorText.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val database = remember { AppDatabase.getDatabase(context) }
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF7F9FB))
     ) {
-        val screenWidth = maxWidth
+        val screenWidth = this.maxWidth
         val isTablet = screenWidth > 800.dp
 
         // Background Decoration
@@ -102,7 +103,7 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = fullName,
-                        onValueChange = { fullName = it; errorText = "" },
+                        onValueChange = { fullName = it; viewModel.clearError() },
                         label = "HỌ VÀ TÊN",
                         placeholder = "Nguyễn Văn A",
                         icon = Icons.Default.Badge
@@ -112,7 +113,7 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = email,
-                        onValueChange = { email = it; errorText = "" },
+                        onValueChange = { email = it; viewModel.clearError() },
                         label = "EMAIL",
                         placeholder = "example@vnu.edu.vn",
                         icon = Icons.Default.Person
@@ -122,7 +123,7 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = password,
-                        onValueChange = { password = it; errorText = "" },
+                        onValueChange = { password = it; viewModel.clearError() },
                         label = "MẬT KHẨU",
                         placeholder = "••••••••",
                         icon = Icons.Default.Lock,
@@ -133,7 +134,7 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = confirmPassword,
-                        onValueChange = { confirmPassword = it; errorText = "" },
+                        onValueChange = { confirmPassword = it; viewModel.clearError() },
                         label = "NHẬP LẠI MẬT KHẨU",
                         placeholder = "••••••••",
                         icon = Icons.Default.LockReset,
@@ -153,54 +154,21 @@ fun RegisterScreen(
 
                     Button(
                         onClick = {
-                            val trimmedEmail = email.trim()
-                            val trimmedName = fullName.trim()
-                            if (trimmedEmail.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || trimmedName.isEmpty()) {
-                                errorText = "Vui lòng điền đầy đủ thông tin"
-                                return@Button
-                            }
-                            if (!trimmedEmail.endsWith("@vnu.edu.vn")) {
-                                errorText = "Email phải có đuôi @vnu.edu.vn"
-                                return@Button
-                            }
-                            if (password != confirmPassword) {
-                                errorText = "Mật khẩu nhập lại không khớp"
-                                return@Button
-                            }
-                            scope.launch {
-                                try {
-                                    val existingUser = database.userDao().getUserByEmail(trimmedEmail)
-                                    if (existingUser != null) {
-                                        errorText = "Email này đã được đăng ký"
-                                    } else {
-                                        // SỬA: Xóa debt khỏi User
-                                        val newUser = User(
-                                            email = trimmedEmail,
-                                            password = password,
-                                            name = trimmedName,
-                                            role = UserRole.USER
-                                        )
-                                        database.userDao().insertUser(newUser)
-
-                                        val createdUser = database.userDao().getUserByEmail(trimmedEmail)
-                                        createdUser?.userId?.let { userId ->
-                                            // SỬA: Khởi tạo dept trong UserInfo
-                                            database.userInfoDao().insertUserInfo(UserInfo(userId = userId, debt = 0.0))
-                                        }
-
-                                        Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
-                                        onRegisterSuccess()
-                                    }
-                                } catch (e: Exception) {
-                                    errorText = "Lỗi CSDL: ${e.message}"
-                                }
+                            viewModel.register(fullName, email, password, confirmPassword) {
+                                Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
+                                onRegisterSuccess()
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
+                        enabled = !isLoading,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                     ) {
-                        Text("Đăng ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        if (isLoading) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        } else {
+                            Text("Đăng ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -218,7 +186,10 @@ fun RegisterScreen(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryBlue,
-                    modifier = Modifier.clickable { onNavigateToLogin() }
+                    modifier = Modifier.clickable { 
+                        viewModel.clearError()
+                        onNavigateToLogin() 
+                    }
                 )
             }
 
