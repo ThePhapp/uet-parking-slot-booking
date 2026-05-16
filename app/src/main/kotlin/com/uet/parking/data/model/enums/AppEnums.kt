@@ -28,3 +28,14 @@ enum class TicketStatus(val value: String) {
         fun fromString(value: String?) = values().find { it.value == value } ?: PENDING
     }
 }
+
+enum class BookingStatus(val value: String) {
+    PENDING("Pending"),
+    APPROVED("Approved"),
+    REJECTED("Rejected"),
+    CHECKED_IN("Checked In");
+
+    companion object {
+        fun fromString(value: String?) = values().find { it.value == value } ?: PENDING
+    }
+}
