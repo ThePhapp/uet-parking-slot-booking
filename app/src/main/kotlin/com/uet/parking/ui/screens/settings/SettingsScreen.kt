@@ -10,10 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,28 +20,31 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.User
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
-import com.uet.parking.ui.viewmodel.SettingsViewModel
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-fun SettingsScreen(
-    viewModel: SettingsViewModel,
-    onBackClick: () -> Unit = {},
-    onLogoutClick: () -> Unit = {}
-) {
-    val user by viewModel.user.collectAsState(initial = null)
+fun SettingsScreen(userId: String, onBackClick: () -> Unit = {}, onLogoutClick: () -> Unit = {}) {
+    val firestore = remember { FirebaseFirestore.getInstance() }
+    val repository = remember { ParkingRepository(firestore) }
+    
+    var user by remember { mutableStateOf<User?>(null) }
+    
+    LaunchedEffect(userId) {
+        user = repository.getUserByIdSuspend(userId)
+    }
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundGray)
     ) {
-        val screenWidth = this.maxWidth
-        val horizontalPadding = if (screenWidth > 800.dp) (screenWidth - 800.dp) / 2 + 24.dp else 24.dp
+        val maxWidth = maxWidth
+        val horizontalPadding = if (maxWidth > 800.dp) (maxWidth - 800.dp) / 2 + 24.dp else 24.dp
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -96,10 +96,7 @@ fun SettingsScreen(
                             title = "Đăng xuất",
                             titleColor = Color(0xFFBA1A1A),
                             showChevron = false,
-                            onClick = {
-                                viewModel.logout()
-                                onLogoutClick()
-                            }
+                            onClick = onLogoutClick
                         )
                     }
                 }

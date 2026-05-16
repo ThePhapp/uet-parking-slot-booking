@@ -24,37 +24,36 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.User
 import com.uet.parking.data.model.UserInfo
 import com.uet.parking.data.model.enums.UserRole
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
-import com.uet.parking.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun RegisterScreen(
+    repository: ParkingRepository,
     onRegisterSuccess: () -> Unit,
-    onNavigateToLogin: () -> Unit,
-    viewModel: AuthViewModel
+    onNavigateToLogin: () -> Unit
 ) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    val errorText by viewModel.errorText.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    
+    var errorText by remember { mutableStateOf("") }
+
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF7F9FB))
     ) {
-        val screenWidth = this.maxWidth
+        val screenWidth = maxWidth
         val isTablet = screenWidth > 800.dp
 
         // Background Decoration
@@ -103,7 +102,7 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = fullName,
-                        onValueChange = { fullName = it; viewModel.clearError() },
+                        onValueChange = { fullName = it; errorText = "" },
                         label = "HỌ VÀ TÊN",
                         placeholder = "Nguyễn Văn A",
                         icon = Icons.Default.Badge
@@ -113,7 +112,7 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = email,
-                        onValueChange = { email = it; viewModel.clearError() },
+                        onValueChange = { email = it; errorText = "" },
                         label = "EMAIL",
                         placeholder = "example@vnu.edu.vn",
                         icon = Icons.Default.Person
@@ -123,7 +122,7 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = password,
-                        onValueChange = { password = it; viewModel.clearError() },
+                        onValueChange = { password = it; errorText = "" },
                         label = "MẬT KHẨU",
                         placeholder = "••••••••",
                         icon = Icons.Default.Lock,
@@ -134,7 +133,7 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = confirmPassword,
-                        onValueChange = { confirmPassword = it; viewModel.clearError() },
+                        onValueChange = { confirmPassword = it; errorText = "" },
                         label = "NHẬP LẠI MẬT KHẨU",
                         placeholder = "••••••••",
                         icon = Icons.Default.LockReset,
@@ -154,21 +153,50 @@ fun RegisterScreen(
 
                     Button(
                         onClick = {
-                            viewModel.register(fullName, email, password, confirmPassword) {
-                                Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
-                                onRegisterSuccess()
+                            val trimmedEmail = email.trim()
+                            val trimmedName = fullName.trim()
+                            if (trimmedEmail.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || trimmedName.isEmpty()) {
+                                errorText = "Vui lòng điền đầy đủ thông tin"
+                                return@Button
+                            }
+                            if (!trimmedEmail.endsWith("@vnu.edu.vn")) {
+                                errorText = "Email phải có đuôi @vnu.edu.vn"
+                                return@Button
+                            }
+                            if (password != confirmPassword) {
+                                errorText = "Mật khẩu nhập lại không khớp"
+                                return@Button
+                            }
+                            scope.launch {
+                                try {
+                                    val existingUser = repository.getUserByEmail(trimmedEmail)
+                                    if (existingUser != null) {
+                                        errorText = "Email này đã được đăng ký"
+                                    } else {
+                                        val newUser = User(
+                                            email = trimmedEmail,
+                                            password = password,
+                                            name = trimmedName,
+                                            role = UserRole.USER
+                                        )
+                                        val userId = repository.createUser(newUser)
+
+                                        // Khởi tạo thông tin nợ cho User mới
+                                        repository.createUserInfo(UserInfo(userId = userId, debt = 0.0))
+
+                                        Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
+                                        onRegisterSuccess()
+                                    }
+                                } catch (e: Exception) {
+                                    errorText = "Lỗi kết nối: ${e.message}"
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        enabled = !isLoading,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        } else {
-                            Text("Đăng ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        }
+                        Text("Đăng ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -186,10 +214,7 @@ fun RegisterScreen(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryBlue,
-                    modifier = Modifier.clickable { 
-                        viewModel.clearError()
-                        onNavigateToLogin() 
-                    }
+                    modifier = Modifier.clickable { onNavigateToLogin() }
                 )
             }
 

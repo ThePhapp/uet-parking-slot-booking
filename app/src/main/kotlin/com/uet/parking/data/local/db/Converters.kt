@@ -1,26 +1,5 @@
 package com.uet.parking.data.local.db
 
-import androidx.room.TypeConverter
-import com.uet.parking.data.model.enums.BookingStatus
-import com.uet.parking.data.model.enums.TicketStatus
-import com.uet.parking.data.model.enums.UserRole
-
-class Converters {
-    @TypeConverter
-    fun fromUserRole(role: UserRole?): String? = role?.value
-
-    @TypeConverter
-    fun toUserRole(value: String?): UserRole? = value?.let { UserRole.fromString(it) }
-
-    @TypeConverter
-    fun fromTicketStatus(status: TicketStatus?): String? = status?.value
-
-    @TypeConverter
-    fun toTicketStatus(value: String?): TicketStatus? = value?.let { TicketStatus.fromString(it) }
-
-    @TypeConverter
-    fun fromBookingStatus(status: BookingStatus?): String? = status?.value
-
-    @TypeConverter
-    fun toBookingStatus(value: String?): BookingStatus? = value?.let { BookingStatus.fromString(it) }
-}
+// Room TypeConverters đã được thay thế bằng logic mapping của Firestore.
+// File này không còn được sử dụng.
+class Converters

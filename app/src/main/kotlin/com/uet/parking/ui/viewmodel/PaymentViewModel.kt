@@ -15,7 +15,7 @@ import java.util.Locale
 
 class PaymentViewModel(
     private val repository: ParkingRepository,
-    private val userId: Int
+    private val userId: String
 ) : ViewModel() {
 
     val userProfile: StateFlow<UserWithProfile?> =
@@ -53,7 +53,7 @@ fun Double.toVndText(): String {
 
 class PaymentViewModelFactory(
     private val repository: ParkingRepository,
-    private val userId: Int
+    private val userId: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PaymentViewModel::class.java)) {

@@ -13,6 +13,7 @@ class SearchingActivity : AppCompatActivity() {
         const val EXTRA_DATE       = "extra_date"
         const val EXTRA_START_TIME = "extra_start_time"
         const val EXTRA_END_TIME   = "extra_end_time"
+        const val EXTRA_USER_ID    = "EXTRA_USER_ID"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,6 +21,7 @@ class SearchingActivity : AppCompatActivity() {
         val date      = intent.getStringExtra(EXTRA_DATE) ?: ""
         val startTime = intent.getStringExtra(EXTRA_START_TIME) ?: ""
         val endTime   = intent.getStringExtra(EXTRA_END_TIME) ?: ""
+        val userId    = intent.getStringExtra(EXTRA_USER_ID) ?: ""
 
         setContent {
             SearchingScreen(
@@ -31,6 +33,7 @@ class SearchingActivity : AppCompatActivity() {
                         putExtra(SuccessActivity.EXTRA_DATE, date)
                         putExtra(SuccessActivity.EXTRA_START_TIME, startTime)
                         putExtra(SuccessActivity.EXTRA_END_TIME, endTime)
+                        putExtra(EXTRA_USER_ID, userId)
                     }
                     startActivity(i)
                     finish()

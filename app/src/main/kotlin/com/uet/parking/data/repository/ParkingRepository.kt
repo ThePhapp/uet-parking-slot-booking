@@ -1,103 +1,183 @@
 package com.uet.parking.data.repository
 
-import com.uet.parking.data.local.dao.*
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.snapshots
 import com.uet.parking.data.model.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.firstOrNull
 
 class ParkingRepository(
-    private val userDao: UserDao,
-    private val ticketDao: TicketDao,
-    private val parkingLotDao: ParkingLotDao,
-    private val hourlyLoadDao: HourlyLoadDao,
-    private val userInfoDao: UserInfoDao,
-    private val adminInfoDao: AdminInfoDao,
-    private val bookingDao: BookingDao? = null
+    private val firestore: FirebaseFirestore
 ) {
-    // User
-    suspend fun getUserByEmail(email: String): User? = userDao.getUserByEmail(email)
-    fun getUserById(id: Int): Flow<User?> = userDao.getUserById(id)
-    suspend fun getUserByIdSuspend(id: Int): User? = userDao.getUserByIdSuspend(id)
-    suspend fun insertUser(user: User) = userDao.insertUser(user)
+    private val usersCollection = firestore.collection("users")
+    private val parkingLotsCollection = firestore.collection("parkingLots")
+    private val ticketsCollection = firestore.collection("tickets")
+    private val userInfoCollection = firestore.collection("userInfo")
+    private val adminInfoCollection = firestore.collection("adminInfo")
+    private val hourlyLoadsCollection = firestore.collection("hourlyLoads")
 
-    // SỬA: Gọi sang userInfoDao vì cột 'dept' hiện nằm ở bảng 'user_info'
-    suspend fun updateDebt(id: Int, newDebt: Double) = userInfoDao.updateDebt(id, newDebt)
+    // --- User ---
+    suspend fun getUserByEmail(email: String): User? {
+        val snapshot = usersCollection.whereEqualTo("email", email).limit(1).get().await()
+        return snapshot.documents.firstOrNull()?.let { doc ->
+            doc.toObject(User::class.java)?.copy(userId = doc.id)
+        }
+    }
 
-    // User Profiles
-    fun getUserWithProfile(userId: Int): Flow<UserWithProfile?> = userDao.getUserWithProfile(userId)
-    fun getAdminWithProfile(userId: Int): Flow<AdminWithProfile?> = userDao.getAdminWithProfile(userId)
+    suspend fun getUserByIdSuspend(userId: String): User? {
+        // Bảo vệ hàm khỏi crash nếu truyền string rỗng
+        if (userId.isBlank()) return null
 
-    // User Info
-    fun getUserInfoById(userId: Int): Flow<UserInfo?> = userInfoDao.getUserInfoById(userId)
-    suspend fun insertUserInfo(userInfo: UserInfo) = userInfoDao.insertUserInfo(userInfo)
+        return try {
+            val document = firestore.collection("users").document(userId).get().await()
+            document.toObject(User::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 
-    // Admin Info
-    fun getAdminInfoById(userId: Int): Flow<AdminInfo?> = adminInfoDao.getAdminInfoById(userId)
-    suspend fun insertAdminInfo(adminInfo: AdminInfo) = adminInfoDao.insertAdminInfo(adminInfo)
-    suspend fun incrementKPI(userId: Int) = adminInfoDao.incrementKPI(userId)
+    suspend fun createUser(user: User): String {
+        val docRef = if (user.userId != null && user.userId.isNotEmpty()) {
+            usersCollection.document(user.userId)
+        } else {
+            usersCollection.document()
+        }
+        val finalUser = user.copy(userId = docRef.id)
+        docRef.set(finalUser).await()
+        return docRef.id
+    }
 
-    // Parking Lot
-    fun getAllParkingLots(): Flow<List<ParkingLot>> = parkingLotDao.getAllParkingLots()
-    suspend fun getParkingLotById(id: Int): ParkingLot? = parkingLotDao.getParkingLotById(id)
-    suspend fun updateCurrentOccupancy(id: Int, current: Int) = parkingLotDao.updateCurrentOccupancy(id, current)
+    // --- User Info & Debt ---
+    suspend fun createUserInfo(userInfo: UserInfo) {
+        userInfoCollection.document(userInfo.userId).set(userInfo).await()
+    }
 
-    // Ticket
-    fun getAllTickets(): Flow<List<Ticket>> = ticketDao.getAllTickets()
-    suspend fun getTicketById(ticketId: Int): Ticket? = ticketDao.getTicketById(ticketId)
-    suspend fun insertTicket(ticket: Ticket) = ticketDao.insertTicket(ticket)
-    suspend fun updateTicketStatus(ticketId: Int, status: String) = ticketDao.updateTicketStatus(ticketId, status)
-    suspend fun deleteTicket(ticket: Ticket) = ticketDao.deleteTicket(ticket)
+    suspend fun getUserInfoByIdOnce(userId: String): UserInfo? {
+        return userInfoCollection.document(userId).get().await().toObject(UserInfo::class.java)
+    }
 
-    // Hourly Load
-    suspend fun getLoad(parkingId: Int, date: String, shift: Int): HourlyLoad? =
-        hourlyLoadDao.getLoad(parkingId, date, shift)
+    suspend fun updateDebt(userId: String, newDebt: Double) {
+        // Sử dụng set với merge để đảm bảo document được tạo nếu chưa tồn tại
+        val data = mapOf("debt" to newDebt, "userId" to userId)
+        userInfoCollection.document(userId).set(data, SetOptions.merge()).await()
+    }
 
-    // ==============================
-    // Booking (Đặt sân)
-    // ==============================
+    fun getUserWithProfile(userId: String): Flow<UserWithProfile?> {
+        val userFlow = usersCollection.document(userId).snapshots().map { doc ->
+            doc.toObject(User::class.java)?.copy(userId = doc.id)
+        }
+        val infoFlow = userInfoCollection.document(userId).snapshots().map { it.toObject(UserInfo::class.java) }
+        
+        return userFlow.combine(infoFlow) { user, info ->
+            if (user != null) UserWithProfile(user, info) else null
+        }
+    }
 
-    suspend fun insertBooking(booking: BookingEntity): Long =
-        bookingDao?.insertBooking(booking) ?: throw IllegalStateException("BookingDao not initialized")
+    // --- Admin Info & KPI ---
+    suspend fun createAdminInfo(adminInfo: AdminInfo) {
+        adminInfoCollection.document(adminInfo.userId).set(adminInfo).await()
+    }
 
-    fun getAllBookings(): Flow<List<BookingEntity>> =
-        bookingDao?.getAllBookings() ?: throw IllegalStateException("BookingDao not initialized")
+    suspend fun incrementKPI(adminId: String) {
+        adminInfoCollection.document(adminId)
+            .set(mapOf("kpi" to FieldValue.increment(1)), SetOptions.merge()).await()
+    }
 
-    fun getBookingsByUserId(userId: Int): Flow<List<BookingEntity>> =
-        bookingDao?.getBookingsByUserId(userId) ?: throw IllegalStateException("BookingDao not initialized")
+    fun getAdminWithProfile(adminId: String): Flow<AdminWithProfile?> {
+        val userFlow = usersCollection.document(adminId).snapshots().map { doc ->
+            doc.toObject(User::class.java)?.copy(userId = doc.id)
+        }
+        val adminInfoFlow = adminInfoCollection.document(adminId).snapshots().map { it.toObject(AdminInfo::class.java) }
+        
+        return userFlow.combine(adminInfoFlow) { user, adminInfo ->
+            if (user != null) AdminWithProfile(user, adminInfo) else null
+        }
+    }
 
-    suspend fun getBookingById(bookingId: Int): BookingEntity? =
-        bookingDao?.getBookingById(bookingId)
+    // --- Parking Lot ---
+    fun getAllParkingLots(): Flow<List<ParkingLot>> {
+        return parkingLotsCollection.snapshots().map { snapshot ->
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(ParkingLot::class.java)?.copy(parkingId = doc.id)
+            }
+        }
+    }
 
-    suspend fun countBookingsForSlot(fieldId: Int, date: String, slot: Int): Int =
-        bookingDao?.countBookingsForSlot(fieldId, date, slot) ?: 0
+    suspend fun getParkingLotById(id: String): ParkingLot? {
+        val doc = parkingLotsCollection.document(id).get().await()
+        return doc.toObject(ParkingLot::class.java)?.copy(parkingId = doc.id)
+    }
 
-    suspend fun countUserBookingsForSlot(userId: Int, date: String, slot: Int): Int =
-        bookingDao?.countUserBookingsForSlot(userId, date, slot) ?: 0
+    suspend fun updateCurrentOccupancy(lotId: String, current: Int) {
+        parkingLotsCollection.document(lotId).update("current", current).await()
+    }
 
-    suspend fun countAllBookingsForSlot(date: String, slot: Int): Int =
-        bookingDao?.countAllBookingsForSlot(date, slot) ?: 0
+    // --- Ticket ---
+    fun getAllTickets(): Flow<List<Ticket>> {
+        return ticketsCollection.snapshots().map { snapshot ->
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Ticket::class.java)?.copy(ticketId = doc.id)
+            }
+        }
+    }
 
-    suspend fun getFullFieldIds(date: String, slot: Int): List<Int> =
-        bookingDao?.getFullFieldIds(date, slot) ?: emptyList()
+    suspend fun getTicketsByUserIdOnce(userId: String): List<Ticket> {
+        val snapshot = ticketsCollection.whereEqualTo("userId", userId).get().await()
+        return snapshot.documents.mapNotNull { doc ->
+            doc.toObject(Ticket::class.java)?.copy(ticketId = doc.id)
+        }
+    }
 
-    suspend fun updateBookingStatus(bookingId: Int, status: String) =
-        bookingDao?.updateBookingStatus(bookingId, status)
+    suspend fun getTicketById(ticketId: String): Ticket? {
+        val doc = ticketsCollection.document(ticketId).get().await()
+        return doc.toObject(Ticket::class.java)?.copy(ticketId = doc.id)
+    }
 
-    suspend fun deleteBooking(bookingId: Int) =
-        bookingDao?.deleteBooking(bookingId)
+    suspend fun createTicket(ticket: Ticket): String {
+        val docRef = ticketsCollection.document()
+        val finalTicket = ticket.copy(ticketId = docRef.id)
+        docRef.set(finalTicket).await()
+        return docRef.id
+    }
 
-    fun getPendingBookings(): Flow<List<BookingEntity>> =
-        bookingDao?.getPendingBookings() ?: throw IllegalStateException("BookingDao not initialized")
+    suspend fun updateTicketStatus(ticketId: String, status: String) {
+        ticketsCollection.document(ticketId).update("status", status).await()
+    }
 
-    // ==============================
-    // QR Check-in
-    // ==============================
+    suspend fun deleteTicket(ticketId: String) {
+        ticketsCollection.document(ticketId).delete().await()
+    }
 
-    suspend fun updateQrCode(bookingId: Int, qrCode: String) =
-        bookingDao?.updateQrCode(bookingId, qrCode)
+    // --- Hourly Load ---
+    suspend fun getLoad(parkingId: String, date: String, shift: Int): HourlyLoad? {
+        val snapshot = hourlyLoadsCollection
+            .whereEqualTo("parkingId", parkingId)
+            .whereEqualTo("date", date)
+            .whereEqualTo("shift", shift)
+            .limit(1)
+            .get()
+            .await()
+        return snapshot.documents.firstOrNull()?.let { doc ->
+            doc.toObject(HourlyLoad::class.java)?.copy(loadId = doc.id)
+        }
+    }
 
-    suspend fun checkInBooking(bookingId: Int, checkedInAt: String) =
-        bookingDao?.checkInBooking(bookingId, checkedInAt)
+    suspend fun updateHourlyLoad(load: HourlyLoad) {
+        val docId = "${load.parkingId}_${load.date}_${load.shift}"
+        hourlyLoadsCollection.document(docId).set(load, SetOptions.merge()).await()
+    }
 
-    suspend fun isBookingCheckedIn(bookingId: Int): Boolean =
-        bookingDao?.isBookingCheckedIn(bookingId) ?: false
+    suspend fun incrementVehicleCount(parkingId: String, date: String, shift: Int) {
+        val docId = "${parkingId}_${date}_${shift}"
+        hourlyLoadsCollection.document(docId).set(
+            mapOf("vehicleCount" to FieldValue.increment(1)),
+            SetOptions.merge()
+        ).await()
+    }
 }

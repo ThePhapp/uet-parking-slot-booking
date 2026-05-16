@@ -17,36 +17,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uet.parking.data.local.db.AppDatabase
 import com.uet.parking.data.model.enums.UserRole
+import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
-import com.uet.parking.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
+import android.util.Log
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (Int, UserRole) -> Unit,
-    onNavigateToRegister: () -> Unit,
-    viewModel: AuthViewModel
+    repository: ParkingRepository,
+    onLoginSuccess: (String, UserRole) -> Unit,
+    onNavigateToRegister: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val errorText by viewModel.errorText.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    var errorText by remember { mutableStateOf("") }
     
-    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF7F9FB))
     ) {
-        val screenWidth = this.maxWidth
+        val screenWidth = maxWidth
         val isTablet = screenWidth > 800.dp
         
         // Background Decoration
@@ -95,7 +94,7 @@ fun LoginScreen(
                     
                     AuthTextField(
                         value = email,
-                        onValueChange = { email = it; viewModel.clearError() },
+                        onValueChange = { email = it; errorText = "" },
                         label = "EMAIL",
                         placeholder = "Nhập email",
                         icon = Icons.Default.Person
@@ -105,7 +104,7 @@ fun LoginScreen(
                     
                     AuthTextField(
                         value = password,
-                        onValueChange = { password = it; viewModel.clearError() },
+                        onValueChange = { password = it; errorText = "" },
                         label = "MẬT KHẨU",
                         placeholder = "••••••••",
                         icon = Icons.Default.Lock,
@@ -125,18 +124,30 @@ fun LoginScreen(
                     
                     Button(
                         onClick = {
-                            viewModel.login(email, password, onLoginSuccess)
+                            val trimmedEmail = email.trim()
+                            if (trimmedEmail.isEmpty() || password.isEmpty()) {
+                                errorText = "Vui lòng điền đầy đủ thông tin"
+                                return@Button
+                            }
+                            scope.launch {
+                                try {
+                                    val user = repository.getUserByEmail(trimmedEmail)
+                                    Log.d("AuthDebug", "User password ${user?.password?: 0}")
+                                    if (user != null && user.password == password) {
+                                        onLoginSuccess(user.userId ?: "", user.role)
+                                    } else {
+                                        errorText = "Sai tài khoản hoặc mật khẩu"
+                                    }
+                                } catch (e: Exception) {
+                                    errorText = "Lỗi kết nối: ${e.message}"
+                                }
+                            }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        enabled = !isLoading,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        } else {
-                            Text("Đăng nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        }
+                        Text("Đăng nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -154,10 +165,7 @@ fun LoginScreen(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryBlue,
-                    modifier = Modifier.clickable { 
-                        viewModel.clearError()
-                        onNavigateToRegister() 
-                    }
+                    modifier = Modifier.clickable { onNavigateToRegister() }
                 )
             }
             

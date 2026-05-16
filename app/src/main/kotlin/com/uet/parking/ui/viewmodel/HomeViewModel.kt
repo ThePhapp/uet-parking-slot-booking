@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class PaymentUiState(
     val showDialog: Boolean = false,
@@ -19,7 +20,7 @@ data class PaymentUiState(
 
 class HomeViewModel(
     private val repository: ParkingRepository,
-    private val userId: Int
+    private val userId: String
 ) : ViewModel() {
 
     val userProfile: StateFlow<UserWithProfile?> =
@@ -33,7 +34,7 @@ class HomeViewModel(
     private val _paymentUiState = MutableStateFlow(PaymentUiState())
     val paymentUiState: StateFlow<PaymentUiState> = _paymentUiState
 
-    private val mockStudentBalance = 50_000.0
+    private val mockStudentBalance = 100_000.0
 
     fun payDebt(debt: Double) {
         if (debt <= 0.0) {
@@ -45,6 +46,37 @@ class HomeViewModel(
                 )
             }
             return
+        }
+
+        viewModelScope.launch {
+            try {
+                if (mockStudentBalance >= debt) {
+                    repository.updateDebt(userId, 0.0)
+                    _paymentUiState.update {
+                        PaymentUiState(
+                            showDialog = true,
+                            isSuccess = true,
+                            message = "Thanh toán thành công ${debt.toVnd()}!"
+                        )
+                    }
+                } else {
+                    _paymentUiState.update {
+                        PaymentUiState(
+                            showDialog = true,
+                            isSuccess = false,
+                            message = "Số dư không đủ để thanh toán."
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _paymentUiState.update {
+                    PaymentUiState(
+                        showDialog = true,
+                        isSuccess = false,
+                        message = "Lỗi thanh toán: ${e.message}"
+                    )
+                }
+            }
         }
     }
 
@@ -63,7 +95,7 @@ private fun Double.toVnd(): String {
 
 class HomeViewModelFactory(
     private val repository: ParkingRepository,
-    private val userId: Int
+    private val userId: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {

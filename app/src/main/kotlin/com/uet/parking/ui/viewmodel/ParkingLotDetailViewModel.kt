@@ -14,8 +14,8 @@ import java.util.*
 
 class ParkingLotDetailViewModel(
     private val repository: ParkingRepository,
-    private val lotId: Int,
-    private val adminId: Int // Thêm adminId để cập nhật KPI
+    private val lotId: String,
+    private val adminId: String
 ) : ViewModel() {
 
     private val _lot = MutableStateFlow<ParkingLot?>(null)
@@ -58,8 +58,11 @@ class ParkingLotDetailViewModel(
     }
 
     fun verifyTicket(ticketCode: String) {
-        val ticketId = ticketCode.removePrefix("PKG-").removeSuffix("-UET").toIntOrNull()
-        if (ticketId == null) {
+        // Assume ticketCode is the Firestore document ID or some logic to map it
+        // If ticketCode is "PKG-ID-UET", we extract ID
+        val ticketId = ticketCode.removePrefix("PKG-").removeSuffix("-UET")
+        
+        if (ticketId.isEmpty()) {
             _toastMessage.value = "Mã vé không hợp lệ"
             return
         }
@@ -78,14 +81,12 @@ class ParkingLotDetailViewModel(
                     repository.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.value)
                     repository.updateCurrentOccupancy(lotId, (currentLot?.current ?: 0) + 1)
                     
-                    // Thăng tiến KPI cho Admin khi quét vé vào thành công
                     repository.incrementKPI(adminId)
                     
                     _toastMessage.value = "Xe vào bãi thành công!"
                     refreshLotData()
                 }
                 TicketStatus.IN_PROGRESS -> {
-                    // 1. Lấy thông tin User kèm Profile (chứa debt trong info)
                     ticket.userId?.let { userId ->
                         val userWithProfile = repository.getUserWithProfile(userId).firstOrNull()
 
@@ -97,13 +98,9 @@ class ParkingLotDetailViewModel(
                         }
                     }
 
-                    // 2. Thăng tiến KPI cho Admin khi quét vé ra thành công
                     repository.incrementKPI(adminId)
+                    repository.deleteTicket(ticketId)
 
-                    // 3. Xóa vé khỏi CSDL
-                    repository.deleteTicket(ticket)
-
-                    // 4. Giảm số lượng xe hiện tại
                     val newCount = ((currentLot?.current ?: 0) - 1).coerceAtLeast(0)
                     repository.updateCurrentOccupancy(lotId, newCount)
 
