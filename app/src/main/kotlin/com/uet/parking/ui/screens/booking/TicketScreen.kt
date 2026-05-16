@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -203,6 +204,37 @@ fun TicketItem(
                     DetailRow(Icons.Default.LocationOn, "Địa chỉ", parkingLot?.address ?: "---")
                     Spacer(modifier = Modifier.height(8.dp))
                     DetailRow(Icons.Default.ConfirmationNumber, "Khung giờ", "${ticket.startTime?.substringAfter(" ") ?: "---"} - ${ticket.endTime?.substringAfter(" ") ?: "---"}")
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val ticketCode = "PKG-${ticket.ticketId ?: "N/A"}-UET"
+                        val qrBitmap = remember(ticketCode) {
+                            com.uet.parking.utils.QrUtils.generateQrCode(ticketCode, 300)
+                        }
+                        
+                        if (qrBitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = qrBitmap.asImageBitmap(),
+                                contentDescription = "QR Code",
+                                modifier = Modifier
+                                    .size(150.dp)
+                                    .padding(8.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Mã QR cho vé",
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
