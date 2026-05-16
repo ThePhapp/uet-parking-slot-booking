@@ -19,7 +19,7 @@ class AuthViewModel(private val repository: ParkingRepository) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
-    fun login(email: String, password: String, onSuccess: (Int, UserRole) -> Unit) {
+    fun login(email: String, password: String, onSuccess: (String, UserRole) -> Unit) {
         val trimmedEmail = email.trim()
         if (trimmedEmail.isEmpty() || password.isEmpty()) {
             _errorText.value = "Vui lòng điền đầy đủ thông tin"
@@ -32,7 +32,7 @@ class AuthViewModel(private val repository: ParkingRepository) : ViewModel() {
             try {
                 val user = repository.getUserByEmail(trimmedEmail)
                 if (user != null && user.password == password) {
-                    onSuccess(user.userId ?: 0, user.role)
+                    onSuccess(user.userId ?: "", user.role)
                 } else {
                     _errorText.value = "Sai tài khoản hoặc mật khẩu"
                 }
@@ -75,12 +75,12 @@ class AuthViewModel(private val repository: ParkingRepository) : ViewModel() {
                         name = trimmedName,
                         role = UserRole.USER
                     )
-                    repository.insertUser(newUser)
+                    // Firestore trả về String ID
+                    val userId = repository.createUser(newUser)
                     
-                    val createdUser = repository.getUserByEmail(trimmedEmail)
-                    createdUser?.userId?.let { userId ->
-                        repository.insertUserInfo(UserInfo(userId = userId, debt = 0.0))
-                    }
+                    // Khởi tạo thông tin nợ
+                    repository.createUserInfo(UserInfo(userId = userId, debt = 0.0))
+
                     onSuccess()
                 }
             } catch (e: Exception) {
