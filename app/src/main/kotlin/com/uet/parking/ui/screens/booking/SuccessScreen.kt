@@ -17,11 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.ParkingLot
+import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
@@ -114,6 +116,11 @@ fun SuccessScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             TicketQrCard(ticketCode)
+            
+            latestTicket?.status?.let { status ->
+                Spacer(modifier = Modifier.height(12.dp))
+                TicketStatusBadge(status)
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -155,14 +162,62 @@ fun SuccessIcon(scale: Float) {
 
 @Composable
 fun TicketQrCard(ticketCode: String) {
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, PrimaryFixed), elevation = CardDefaults.cardElevation(2.dp)) {
+    val qrBitmap = remember(ticketCode) {
+        com.uet.parking.utils.QrUtils.generateQrCode(ticketCode, 400)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), 
+        shape = RoundedCornerShape(20.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White), 
+        border = BorderStroke(1.dp, PrimaryFixed), 
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
         Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Mã vé của bạn", fontSize = 12.sp, color = Color.Gray)
             Spacer(Modifier.height(8.dp))
             Text(ticketCode, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue, letterSpacing = 2.sp)
-            Spacer(Modifier.height(12.dp))
-            Icon(Icons.Default.QrCode, null, tint = Color.Gray, modifier = Modifier.size(72.dp))
+            Spacer(Modifier.height(16.dp))
+            
+            if (qrBitmap != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = qrBitmap.asImageBitmap(),
+                    contentDescription = "QR Code",
+                    modifier = Modifier.size(180.dp)
+                )
+            } else {
+                Icon(Icons.Default.QrCode, null, tint = Color.Gray, modifier = Modifier.size(120.dp))
+            }
+            
+            Spacer(Modifier.height(8.dp))
+            Text("Quét mã này tại cổng bãi xe", fontSize = 11.sp, color = Color.Gray)
         }
+    }
+}
+
+@Composable
+fun TicketStatusBadge(status: TicketStatus) {
+    Surface(
+        color = when(status) {
+            TicketStatus.PENDING -> Color(0xFFFFF3E0)
+            TicketStatus.IN_PROGRESS -> Color(0xFFE3F2FD)
+            TicketStatus.CONFIRMED -> Color(0xFFE8F5E9)
+            else -> Color(0xFFF5F5F5)
+        },
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(
+            text = status.value,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = when(status) {
+                TicketStatus.PENDING -> Color(0xFFEF6C00)
+                TicketStatus.IN_PROGRESS -> PrimaryBlue
+                TicketStatus.CONFIRMED -> Color(0xFF2E7D32)
+                else -> Color.Gray
+            }
+        )
     }
 }
 
