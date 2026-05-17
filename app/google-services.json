@@ -14,11 +14,27 @@
       },
       "oauth_client": [
         {
+          "client_id": "271994357228-2nj00s5b8l3qoacf09918q40bumqspdb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.uet.parking",
+            "certificate_hash": "0c3fab84e267124444f19d6ffbb60f2bea25f62c"
+          }
+        },
+        {
           "client_id": "271994357228-97d0a26cst2ernfmakr7jrmnhjrgks6k.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.uet.parking",
             "certificate_hash": "7b4acb364292d0bf41a2e1bf8a9b610b14486334"
+          }
+        },
+        {
+          "client_id": "271994357228-q39psui89jin3l3q14opp3co07lqmauh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.uet.parking",
+            "certificate_hash": "7ce9398877b9960a73d0d382520a2b68719c004d"
           }
         },
         {

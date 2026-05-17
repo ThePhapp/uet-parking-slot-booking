@@ -50,22 +50,6 @@ import com.uet.parking.ui.screens.payment.PaymentScreen
 import com.uet.parking.ui.navigation.Screen
 
 @androidx.compose.material3.ExperimentalMaterial3Api
-enum class Screen(val route: String) {
-    AUTH("auth"),
-    HOME("home"),
-    BOOKING("booking"),
-    SEARCHING("searching"),
-    SUCCESS("success"),
-    TICKETS("tickets"),
-    SETTINGS("settings"),
-    EDIT_PROFILE("edit_profile"),
-    ADMIN_HOME("admin_home"),
-    ADMIN_DETAIL("admin_detail/{lotId}"),
-    ADMIN_BOOKING("admin_booking"),
-    ADMIN_SETTINGS("admin_settings"),
-    PAYMENT("payment")
-}
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,6 +64,7 @@ class MainActivity : ComponentActivity() {
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun MainNavigation(activityContext: android.content.Context) {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

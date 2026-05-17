@@ -13,6 +13,7 @@ enum class Screen(val route: String) {
     ADMIN_QR_SCAN("admin_qr_scan/{lotId}/{mode}"), // mode: checkin or checkout
     ADMIN_BOOKING("admin_booking"),
     ADMIN_SETTINGS("admin_settings"),
+    EDIT_PROFILE("edit_profile"),
     PAYMENT("payment");
 
     fun withId(id: String): String = route.replace("{lotId}", id)

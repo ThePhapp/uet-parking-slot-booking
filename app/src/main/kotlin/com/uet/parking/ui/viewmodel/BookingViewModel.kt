@@ -103,7 +103,7 @@ class BookingViewModel(
                 val ticketPrice = 10000.0
                 val ticket = Ticket(
                     userId = userId,
-                    parkingId = "lot1", 
+                    parkingId = "1",
                     startTime = "${currentState.selectedDate} ${currentState.selectedStartTime}",
                     endTime = "${currentState.selectedDate} ${currentState.selectedEndTime}",
                     status = TicketStatus.PENDING,
@@ -111,7 +111,6 @@ class BookingViewModel(
                 )
                 repository.createTicket(ticket)
 
-                // 3. Cập nhật HourlyLoad
                 val shift = when(currentState.selectedStartTime) {
                     "07:00" -> 1
                     "09:15" -> 2
@@ -120,11 +119,11 @@ class BookingViewModel(
                     else -> 1
                 }
                 
-                val currentLoad = repository.getLoad("lot1", currentState.selectedDate, shift)
+                val currentLoad = repository.getLoad("1", currentState.selectedDate, shift)
                 if (currentLoad == null) {
-                    repository.updateHourlyLoad(HourlyLoad(null, "lot1", currentState.selectedDate, shift, 1))
+                    repository.updateHourlyLoad(HourlyLoad(null, "1", currentState.selectedDate, shift, 1))
                 } else {
-                    repository.incrementVehicleCount("lot1", currentState.selectedDate, shift)
+                    repository.incrementVehicleCount("1", currentState.selectedDate, shift)
                 }
 
                 _bookingUiState.update { it.copy(isLoading = false) }
