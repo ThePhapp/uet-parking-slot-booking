@@ -12,7 +12,20 @@
           "package_name": "com.uet.parking"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "271994357228-97d0a26cst2ernfmakr7jrmnhjrgks6k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.uet.parking",
+            "certificate_hash": "7b4acb364292d0bf41a2e1bf8a9b610b14486334"
+          }
+        },
+        {
+          "client_id": "271994357228-v1ljl9ltlciri9ksd8dmqkcame9tguce.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCG7ZSyJVc9sZ9kYraH1wtHaC8uwtWdO2I"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "271994357228-v1ljl9ltlciri9ksd8dmqkcame9tguce.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

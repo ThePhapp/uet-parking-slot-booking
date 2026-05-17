@@ -28,7 +28,12 @@ import com.uet.parking.ui.theme.PrimaryBlue
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-fun SettingsScreen(userId: String, onBackClick: () -> Unit = {}, onLogoutClick: () -> Unit = {}) {
+fun SettingsScreen(
+    userId: String,
+    onBackClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {},
+    onEditProfileClick: () -> Unit = {}
+) {
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
     
@@ -56,7 +61,7 @@ fun SettingsScreen(userId: String, onBackClick: () -> Unit = {}, onLogoutClick: 
 
             // Profile Section
             item {
-                ProfileSection(user)
+                ProfileSection(user, onEditProfileClick)
             }
 
             // Settings Groups
@@ -66,7 +71,11 @@ fun SettingsScreen(userId: String, onBackClick: () -> Unit = {}, onLogoutClick: 
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     SettingsGroupCard {
-                        SettingsItem(icon = Icons.Default.Person, title = "Thông tin cá nhân")
+                        SettingsItem(
+                            icon = Icons.Default.Person,
+                            title = "Thông tin cá nhân",
+                            onClick = onEditProfileClick
+                        )
                         SettingsItem(icon = Icons.Default.Lock, title = "Đổi mật khẩu")
                         SettingsItem(icon = Icons.Default.CreditCard, title = "Phương thức thanh toán")
                     }
@@ -119,7 +128,7 @@ fun SettingsScreen(userId: String, onBackClick: () -> Unit = {}, onLogoutClick: 
 }
 
 @Composable
-fun ProfileSection(user: User?) {
+fun ProfileSection(user: User?, onEditClick: () -> Unit = {}) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.BottomEnd) {
             Box(
@@ -139,7 +148,7 @@ fun ProfileSection(user: User?) {
                 color = PrimaryBlue,
                 shadowElevation = 4.dp
             ) {
-                IconButton(onClick = {}) {
+                IconButton(onClick = onEditClick) {
                     Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = Color.White)
                 }
             }

@@ -23,6 +23,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.data.repository.ParkingRepository
@@ -34,6 +39,7 @@ import com.uet.parking.ui.screens.admin.AdminQrScanScreen
 import com.uet.parking.ui.screens.auth.AuthScreen
 import com.uet.parking.ui.screens.home.HomeScreen
 import com.uet.parking.ui.screens.settings.SettingsScreen
+import com.uet.parking.ui.screens.settings.EditProfileScreen
 import com.uet.parking.ui.screens.booking.BookingFormScreen
 import com.uet.parking.ui.screens.booking.SearchingScreen
 import com.uet.parking.ui.screens.booking.SuccessScreen
@@ -44,6 +50,22 @@ import com.uet.parking.ui.screens.payment.PaymentScreen
 import com.uet.parking.ui.navigation.Screen
 
 @androidx.compose.material3.ExperimentalMaterial3Api
+enum class Screen(val route: String) {
+    AUTH("auth"),
+    HOME("home"),
+    BOOKING("booking"),
+    SEARCHING("searching"),
+    SUCCESS("success"),
+    TICKETS("tickets"),
+    SETTINGS("settings"),
+    EDIT_PROFILE("edit_profile"),
+    ADMIN_HOME("admin_home"),
+    ADMIN_DETAIL("admin_detail/{lotId}"),
+    ADMIN_BOOKING("admin_booking"),
+    ADMIN_SETTINGS("admin_settings"),
+    PAYMENT("payment")
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,19 +87,37 @@ fun MainNavigation(activityContext: android.content.Context) {
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
 
-    var userRole by remember { mutableStateOf<UserRole?>(null) }
-    var currentUserId by remember { mutableStateOf<String?>(null) }
+    var userRole by rememberSaveable { mutableStateOf<UserRole?>(null) }
+    var currentUserId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val handleLogout = {
+        FirebaseAuth.getInstance().signOut()
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(com.uet.parking.R.string.default_web_client_id))
+            .build()
+        GoogleSignIn.getClient(context, gso).signOut()
+        
+        currentUserId = null
+        userRole = null
+        navController.navigate(Screen.AUTH.route) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
 
     LaunchedEffect(currentRoute) {
         if (currentRoute == Screen.AUTH.route) {
-            userRole = null
-            currentUserId = null
+            // Already handled by handleLogout, but for safety:
+            // if navigated here manually (e.g. back button if not cleared)
         }
-        else if (currentRoute?.startsWith("admin") == true) userRole = UserRole.ADMIN
-        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route, Screen.PAYMENT.route)) userRole = UserRole.USER
+        else if (currentRoute?.startsWith("admin") == true) {
+            if (userRole == null) userRole = UserRole.ADMIN // Fallback
+        }
+        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route, Screen.PAYMENT.route)) {
+            if (userRole == null) userRole = UserRole.USER // Fallback
+        }
     }
 
-    val isAdmin = userRole == UserRole.ADMIN
+    val isAdmin = userRole == UserRole.ADMIN || userRole == UserRole.GUARD
     val isUser = userRole == UserRole.USER
 
     Scaffold(
@@ -91,6 +131,7 @@ fun MainNavigation(activityContext: android.content.Context) {
                         currentRoute == Screen.SUCCESS.route -> "Thành công"
                         currentRoute == Screen.TICKETS.route -> "Vé của tôi"
                         currentRoute == Screen.SETTINGS.route || currentRoute == Screen.ADMIN_SETTINGS.route -> "Cài đặt"
+                        currentRoute == Screen.EDIT_PROFILE.route -> "Thông tin cá nhân"
                         currentRoute == Screen.ADMIN_HOME.route -> "Quản trị bãi đỗ"
                         currentRoute == Screen.PAYMENT.route -> "Thanh toán"
                         currentRoute?.startsWith("admin_detail") == true -> "Chi tiết bãi đỗ"
@@ -99,12 +140,13 @@ fun MainNavigation(activityContext: android.content.Context) {
                     },
                     showBack = currentRoute?.startsWith("admin_detail") == true ||
                             currentRoute in listOf(
-                        Screen.TICKETS.route,
-                        Screen.BOOKING.route,
-                        Screen.SEARCHING.route,
-                        Screen.SUCCESS.route,
-                        Screen.PAYMENT.route
-                    ),
+                                Screen.TICKETS.route,
+                                Screen.BOOKING.route,
+                                Screen.SEARCHING.route,
+                                Screen.SUCCESS.route,
+                                Screen.PAYMENT.route,
+                                Screen.EDIT_PROFILE.route
+                            ),
                     onBackClick = { navController.popBackStack() },
                     onHomeClick = {
                         val homeRoute = if (isAdmin) Screen.ADMIN_HOME.route else Screen.HOME.route
@@ -169,7 +211,10 @@ fun MainNavigation(activityContext: android.content.Context) {
                     onLoginSuccess = { userId, role ->
                         currentUserId = userId
                         userRole = role
-                        val startRoute = if (role == UserRole.ADMIN) Screen.ADMIN_HOME.route else Screen.HOME.route
+                        val startRoute = if (role == UserRole.ADMIN || role == UserRole.GUARD) 
+                            Screen.ADMIN_HOME.route 
+                        else 
+                            Screen.HOME.route
                         navController.navigate(startRoute) {
                             popUpTo(Screen.AUTH.route) { inclusive = true }
                         }
@@ -249,7 +294,19 @@ fun MainNavigation(activityContext: android.content.Context) {
                 SettingsScreen(
                     userId = userId,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(Screen.AUTH.route) { inclusive = true } } }
+                    onLogoutClick = handleLogout,
+                    onEditProfileClick = { navController.navigate(Screen.EDIT_PROFILE.route) }
+                )
+            }
+
+            composable(Screen.EDIT_PROFILE.route) {
+                val userId = currentUserId ?: ""
+                val settingsViewModel: SettingsViewModel = viewModel(
+                    factory = ViewModelFactory(repository, userId)
+                )
+                EditProfileScreen(
+                    viewModel = settingsViewModel,
+                    onBackClick = { navController.popBackStack() }
                 )
             }
 
@@ -307,7 +364,7 @@ fun MainNavigation(activityContext: android.content.Context) {
                 SettingsScreen(
                     userId = userId,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = { navController.navigate(Screen.AUTH.route) { popUpTo(Screen.AUTH.route) { inclusive = true } } }
+                    onLogoutClick = handleLogout
                 )
             }
         }

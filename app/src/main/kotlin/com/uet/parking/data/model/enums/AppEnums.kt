@@ -4,6 +4,7 @@ import com.google.firebase.firestore.PropertyName
 
 enum class UserRole(val value: String) {
     ADMIN("admin"),
+    GUARD("guard"),
     USER("user");
 
     companion object {

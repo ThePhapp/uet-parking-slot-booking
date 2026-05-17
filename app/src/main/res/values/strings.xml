@@ -14,4 +14,6 @@
     <string name="error_loading_data">Lỗi khi tải dữ liệu</string>
     <string name="retry">Thử lại</string>
     <string name="cancel">Hủy</string>
+    <!-- Google OAuth Client ID (Get this from Firebase Console) -->
+    <string name="default_web_client_id">271994357228-v1ljl9ltlciri9ksd8dmqkcame9tguce.apps.googleusercontent.com</string>
 </resources>

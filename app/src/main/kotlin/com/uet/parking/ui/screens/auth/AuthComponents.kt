@@ -15,39 +15,32 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uet.parking.ui.theme.OnSurfaceVariant
 import com.uet.parking.ui.theme.PrimaryBlue
+import com.uet.parking.ui.theme.OnSecondaryContainer
 
 @Composable
 fun AuthHeader() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(
-            modifier = Modifier.size(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = PrimaryBlue.copy(alpha = 0.1f)
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocalParking,
-                contentDescription = null,
-                tint = PrimaryBlue,
-                modifier = Modifier.padding(8.dp).size(24.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Text(
-            text = "Campus Parking",
+            text = "Campus Parking.",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = PrimaryBlue,
-            letterSpacing = (-1).sp
+            letterSpacing = (-0.5).sp
         )
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Kiến tạo trải nghiệm đỗ xe thông minh",
-            fontSize = 12.sp,
-            color = OnSurfaceVariant,
+            text = "Kiến tạo trải nghiệm học tập thông minh",
+            fontSize = 16.sp,
+            color = OnSecondaryContainer,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
         )
@@ -108,12 +101,12 @@ fun AuthTextField(
 @Composable
 fun FooterLegal() {
     Text(
-        text = "© VNU University of Engineering and Technology \nTERMS • PRIVACY",
-        fontSize = 10.sp,
-        color = Color.Gray.copy(alpha = 0.6f),
+        text = "@2026 CAMPUS PARKING",
+        fontSize = 12.sp,
+        color = Color.Gray.copy(alpha = 0.4f),
         fontWeight = FontWeight.Bold,
-        letterSpacing = 1.sp,
-        lineHeight = 16.sp,
-        textAlign = TextAlign.Center
+        letterSpacing = 2.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(vertical = 24.dp)
     )
 }

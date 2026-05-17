@@ -26,6 +26,10 @@ class ViewModelFactory(
                 @Suppress("UNCHECKED_CAST")
                 PaymentViewModel(repository, userId) as T
             }
+            modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                SettingsViewModel(repository, userId) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }
