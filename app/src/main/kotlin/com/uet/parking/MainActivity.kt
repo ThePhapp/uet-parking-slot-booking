@@ -1,6 +1,7 @@
 package com.uet.parking
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -10,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +35,7 @@ import com.uet.parking.ui.components.common.AppBottomNavigationBar
 import com.uet.parking.ui.components.common.AppTopBar
 import com.uet.parking.ui.screens.admin.AdminHomepage
 import com.uet.parking.ui.screens.admin.ParkingLotDetailPage
+import com.uet.parking.ui.screens.admin.AdminQrScanScreen
 import com.uet.parking.ui.screens.auth.AuthScreen
 import com.uet.parking.ui.screens.home.HomeScreen
 import com.uet.parking.ui.screens.settings.SettingsScreen
@@ -44,7 +47,9 @@ import com.uet.parking.ui.screens.booking.TicketScreen
 import com.uet.parking.ui.theme.ParkingTheme
 import com.uet.parking.ui.viewmodel.*
 import com.uet.parking.ui.screens.payment.PaymentScreen
+import com.uet.parking.ui.navigation.Screen
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 enum class Screen(val route: String) {
     AUTH("auth"),
     HOME("home"),
@@ -66,15 +71,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ParkingTheme {
-                MainNavigation()
+                MainNavigation(activityContext = this)
             }
         }
     }
 }
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
-fun MainNavigation() {
-    val context = LocalContext.current
+fun MainNavigation(activityContext: android.content.Context) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -117,7 +122,7 @@ fun MainNavigation() {
 
     Scaffold(
         topBar = {
-            if (currentRoute != Screen.AUTH.route) {
+            if (currentRoute != Screen.AUTH.route && currentRoute?.startsWith("admin_qr_scan") != true) {
                 AppTopBar(
                     title = when {
                         currentRoute == Screen.HOME.route -> "Trang chủ"
@@ -158,7 +163,7 @@ fun MainNavigation() {
             }
         },
         bottomBar = {
-            if (isUser || isAdmin) {
+            if ((isUser || isAdmin) && currentRoute?.startsWith("admin_qr_scan") != true) {
                 AppBottomNavigationBar(
                     isAdmin = isAdmin,
                     selectedIndex = when (currentRoute) {
@@ -256,15 +261,15 @@ fun MainNavigation() {
                     onContinue = { _, _, _ -> navController.navigate(Screen.SEARCHING.route) }
                 )
             }
-            
-            composable(Screen.SEARCHING.route) { 
-                SearchingScreen(onNavigateToSuccess = { 
-                    navController.navigate(Screen.SUCCESS.route) { 
-                        popUpTo(Screen.BOOKING.route) { inclusive = true } 
-                    } 
-                }) 
+
+            composable(Screen.SEARCHING.route) {
+                SearchingScreen(onNavigateToSuccess = {
+                    navController.navigate(Screen.SUCCESS.route) {
+                        popUpTo(Screen.BOOKING.route) { inclusive = true }
+                    }
+                })
             }
-            
+
             composable(Screen.SUCCESS.route) {
                 val userId = currentUserId ?: ""
                 val bookingViewModel: BookingViewModel = viewModel(
@@ -275,7 +280,7 @@ fun MainNavigation() {
                     onGoHome = { navController.navigate(Screen.HOME.route) { popUpTo(Screen.HOME.route) { inclusive = true } } }
                 )
             }
-            
+
             composable(Screen.TICKETS.route) {
                 val userId = currentUserId ?: ""
                 val bookingViewModel: BookingViewModel = viewModel(
@@ -283,7 +288,7 @@ fun MainNavigation() {
                 )
                 TicketScreen(viewModel = bookingViewModel)
             }
-            
+
             composable(Screen.SETTINGS.route) {
                 val userId = currentUserId ?: ""
                 SettingsScreen(
@@ -314,14 +319,45 @@ fun MainNavigation() {
                     }
                 )
             }
+
             composable(Screen.ADMIN_DETAIL.route) { backStackEntry ->
                 val lotId = backStackEntry.arguments?.getString("lotId") ?: ""
+
+                // Đã chỉ định rõ kiểu dữ liệu String để sửa lỗi "Cannot infer type"
+                val scanResultState = backStackEntry.savedStateHandle.getLiveData<String>("scan_result").observeAsState()
+
                 ParkingLotDetailPage(
                     lotId = lotId,
                     adminId = currentUserId ?: "",
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onNavigateToQrScan = { id, mode ->
+                        navController.navigate("admin_qr_scan/$id/$mode")
+                    }
+                )
+
+                LaunchedEffect(scanResultState.value) {
+                    scanResultState.value?.let { message ->
+                        Toast.makeText(activityContext, message, Toast.LENGTH_LONG).show()
+                        backStackEntry.savedStateHandle.remove<String>("scan_result")
+                    }
+                }
+            }
+
+            composable("admin_qr_scan/{lotId}/{mode}") { backStackEntry ->
+                val lotId = backStackEntry.arguments?.getString("lotId") ?: ""
+                val mode = backStackEntry.arguments?.getString("mode") ?: ""
+
+                AdminQrScanScreen(
+                    lotId = lotId,
+                    adminId = currentUserId ?: "",
+                    mode = mode,
+                    onBackWithMessage = { message -> // Sửa từ onBack thành onBackWithMessage để khớp 100% với file QR của bạn
+                        navController.previousBackStackEntry?.savedStateHandle?.set("scan_result", message)
+                        navController.popBackStack()
+                    }
                 )
             }
+
             composable(Screen.ADMIN_BOOKING.route) { PlaceholderScreen("Lịch trình đặt chỗ (Trống)") }
             composable(Screen.ADMIN_SETTINGS.route) {
                 val userId = currentUserId ?: ""

@@ -1,7 +1,5 @@
 package com.uet.parking.data.model
 
-import com.google.firebase.firestore.PropertyName
-
 data class UserInfo(
     val userId: String = "",
     val studentId: String? = null,
