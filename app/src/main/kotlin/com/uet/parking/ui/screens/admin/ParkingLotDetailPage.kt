@@ -16,36 +16,33 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.ParkingLot
-import com.uet.parking.data.model.enums.TicketStatus
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.PrimaryContainer
-import com.uet.parking.ui.theme.PrimaryFixed
 import com.uet.parking.ui.theme.SurfaceVariant
 import com.uet.parking.ui.viewmodel.ParkingLotDetailViewModel
 import com.uet.parking.ui.viewmodel.ParkingLotDetailViewModelFactory
-import java.text.SimpleDateFormat
-import java.util.*
 
 @Composable
-fun ParkingLotDetailPage(lotId: String, adminId: String, onBack: () -> Unit) {
+fun ParkingLotDetailPage(
+    lotId: String,
+    adminId: String,
+    onBack: () -> Unit,
+    onNavigateToQrScan: (String, String) -> Unit // lotId, mode ("checkin" or "checkout")
+) {
     val context = LocalContext.current
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
@@ -58,10 +55,23 @@ fun ParkingLotDetailPage(lotId: String, adminId: String, onBack: () -> Unit) {
     val nextShiftLoad by viewModel.nextShiftLoad.collectAsState()
     val toastMessage by viewModel.toastMessage.collectAsState()
 
+    // --- SỰ THAY ĐỔI Ở ĐÂY: Biến nhận thông báo từ màn hình QR Scan truyền ngược về ---
+    var resultMessage by remember { mutableStateOf<String?>(null) }
+
+    // Hiển thị Toast cho các thông báo nội bộ của ViewModel hiện tại
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             viewModel.clearToast()
+        }
+    }
+
+    // --- SỰ THAY ĐỔI Ở ĐÂY: Lắng nghe và hiển thị kết quả từ màn hình QR trả về ---
+    LaunchedEffect(resultMessage) {
+        resultMessage?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            resultMessage = null // Reset để tránh lặp lại thông báo
+            viewModel.refreshLotData() // Làm mới dữ liệu bãi xe sau khi quét thành công
         }
     }
 
@@ -140,14 +150,60 @@ fun ParkingLotDetailPage(lotId: String, adminId: String, onBack: () -> Unit) {
             }
 
             item {
-                ScanControlCard(
-                    onVerifyTicket = { ticketCode ->
-                        viewModel.verifyTicket(ticketCode)
-                    }
+                AdminScanActionsCard(
+                    onScanCheckIn = { onNavigateToQrScan(lotId, "checkin") },
+                    onScanCheckOut = { onNavigateToQrScan(lotId, "checkout") }
                 )
             }
 
             item { Spacer(modifier = Modifier.height(110.dp)) }
+        }
+    }
+}
+
+// --- Giữ nguyên các Component giao diện bên dưới của bạn ---
+@Composable
+fun AdminScanActionsCard(onScanCheckIn: () -> Unit, onScanCheckOut: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                "KIỂM SOÁT VÉ",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onScanCheckIn,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                ) {
+                    Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Quét vào", fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = onScanCheckOut,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBA1A1A))
+                ) {
+                    Icon(Icons.Default.Logout, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Quét ra", fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }
@@ -256,43 +312,6 @@ fun StatusGradientCard(gradient: Brush) {
         Column {
             Text("TRẠNG THÁI", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(0.7f))
             Text("Ổn định", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        }
-    }
-}
-
-@Composable
-fun ScanControlCard(onVerifyTicket: (String) -> Unit) {
-    var ticketCode by remember { mutableStateOf("") }
-
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text("KIỂM SOÁT VÉ", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = ticketCode,
-                onValueChange = { ticketCode = it },
-                placeholder = { Text("Nhập mã vé thủ công (ví dụ: PKG-1-UET)", fontSize = 14.sp) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = { 
-                    if (ticketCode.isNotEmpty()) {
-                        onVerifyTicket(ticketCode)
-                        ticketCode = ""
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-            ) {
-                Text("Xác nhận", fontWeight = FontWeight.Bold)
-            }
         }
     }
 }

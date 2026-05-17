@@ -57,12 +57,9 @@ class ParkingLotDetailViewModel(
         }
     }
 
-    fun verifyTicket(ticketCode: String) {
-        // Assume ticketCode is the Firestore document ID or some logic to map it
-        // If ticketCode is "PKG-ID-UET", we extract ID
-        val ticketId = ticketCode.removePrefix("PKG-").removeSuffix("-UET")
-        
-        if (ticketId.isEmpty()) {
+    fun processCheckIn(ticketCode: String) {
+        val ticketId = extractId(ticketCode)
+        if (ticketId == null) {
             _toastMessage.value = "Mã vé không hợp lệ"
             return
         }
@@ -72,45 +69,94 @@ class ParkingLotDetailViewModel(
             val currentLot = _lot.value
 
             if (ticket == null || ticket.parkingId != lotId) {
-                _toastMessage.value = "Vé không tồn tại hoặc sai bãi đỗ"
+                _toastMessage.value = "Vé không tồn tại hoặc không thuộc bãi đỗ này"
                 return@launch
             }
 
-            when (ticket.status) {
-                TicketStatus.PENDING -> {
-                    repository.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.value)
-                    repository.updateCurrentOccupancy(lotId, (currentLot?.current ?: 0) + 1)
-                    
-                    repository.incrementKPI(adminId)
-                    
-                    _toastMessage.value = "Xe vào bãi thành công!"
-                    refreshLotData()
-                }
-                TicketStatus.IN_PROGRESS -> {
-                    ticket.userId?.let { userId ->
-                        val userWithProfile = repository.getUserWithProfile(userId).firstOrNull()
+            if (ticket.status != TicketStatus.PENDING) {
+                _toastMessage.value = "Vé không hợp lệ (Trạng thái hiện tại: ${ticket.status?.value})"
+                return@launch
+            }
 
-                        userWithProfile?.let { profile ->
-                            val currentDebt = profile.info?.debt ?: 0.0
-                            val ticketPrice = ticket.price ?: 10000.0
+            // Kiểm tra thời gian: Sớm hơn tối đa 30 phút
+            val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            val startTime = try { sdf.parse(ticket.startTime ?: "") } catch (e: Exception) { null }
+            
+            if (startTime != null) {
+                val now = Date()
+                val diffMillis = startTime.time - now.time
+                val diffMinutes = diffMillis / (60 * 1000)
 
-                            repository.updateDebt(userId, currentDebt + ticketPrice)
-                        }
-                    }
-
-                    repository.incrementKPI(adminId)
-                    repository.deleteTicket(ticketId)
-
-                    val newCount = ((currentLot?.current ?: 0) - 1).coerceAtLeast(0)
-                    repository.updateCurrentOccupancy(lotId, newCount)
-
-                    _toastMessage.value = "Xe ra bãi thành công! Phí đã được cộng vào tài khoản người dùng."
-                    refreshLotData()
-                }
-                else -> {
-                    _toastMessage.value = "Vé không hợp lệ"
+                // Nếu đến sớm hơn 30 phút (diffMinutes > 30)
+                if (diffMinutes > 30) {
+                    _toastMessage.value = "Vào bãi thất bại: Vui lòng quay lại sau ${diffMinutes - 30} phút"
+                    return@launch
                 }
             }
+
+            repository.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.value)
+            repository.updateCurrentOccupancy(lotId, (currentLot?.current ?: 0) + 1)
+            repository.incrementKPI(adminId)
+            android.util.Log.d("QR_SCAN_DEBUG", "👉 thành")
+            _toastMessage.value = "Quét vào thành công! Xe đã vào bãi."
+            refreshLotData()
+        }
+    }
+
+    fun processCheckOut(ticketCode: String) {
+        val ticketId = extractId(ticketCode)
+        if (ticketId == null) {
+            _toastMessage.value = "Mã vé không hợp lệ"
+            return
+        }
+
+        viewModelScope.launch {
+            val ticket = repository.getTicketById(ticketId)
+            val currentLot = _lot.value
+
+            if (ticket == null || ticket.parkingId != lotId) {
+                _toastMessage.value = "Vé không tồn tại hoặc không thuộc bãi đỗ này"
+                return@launch
+            }
+
+            if (ticket.status != TicketStatus.IN_PROGRESS) {
+                _toastMessage.value = "Vé không hợp lệ (Xe chưa check-in)"
+                return@launch
+            }
+
+            // 1. Tính tiền vào nợ của User
+            ticket.userId?.let { userId ->
+                val userWithProfile = repository.getUserWithProfile(userId).firstOrNull()
+                userWithProfile?.let { profile ->
+                    val currentDebt = profile.info?.debt ?: 0.0
+                    val ticketPrice = ticket.price ?: 10000.0
+                    repository.updateDebt(userId, currentDebt + ticketPrice)
+                }
+            }
+
+            // 2. Xóa vé và cập nhật bãi
+            repository.incrementKPI(adminId)
+            repository.deleteTicket(ticketId)
+
+            val newCount = ((currentLot?.current ?: 0) - 1).coerceAtLeast(0)
+            repository.updateCurrentOccupancy(lotId, newCount)
+
+            _toastMessage.value = "Quét ra thành công! Phí đã được tính vào nợ người dùng."
+            refreshLotData()
+        }
+    }
+
+    private fun extractId(code: String): String? {
+        return try {
+            if (code.startsWith("{")) {
+                org.json.JSONObject(code).optString("bookingId", code)
+            } else if (code.startsWith("PKG-")) {
+                code.removePrefix("PKG-").removeSuffix("-UET")
+            } else {
+                code
+            }
+        } catch (e: Exception) {
+            code
         }
     }
 

@@ -51,6 +51,7 @@ class BookingViewModel(
     private val _bookingUiState = MutableStateFlow(BookingUiState())
     val bookingUiState: StateFlow<BookingUiState> = _bookingUiState.asStateFlow()
 
+    // Lấy vé của người dùng hiện tại
     val userTickets: StateFlow<List<Ticket>> = repository.getAllTickets()
         .map { tickets -> tickets.filter { it.userId == userId } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -83,6 +84,7 @@ class BookingViewModel(
 
         viewModelScope.launch {
             try {
+                // 1. Kiểm tra trùng lịch
                 val existingTickets = repository.getTicketsByUserIdOnce(userId)
                 val isOverlapping = existingTickets.any { ticket ->
                     val ticketStart = fullSdf.parse(ticket.startTime ?: "")
@@ -97,10 +99,11 @@ class BookingViewModel(
                     return@launch
                 }
 
+                // 2. Tạo vé mới (LƯU Ý: Không cộng nợ tại đây, nợ tính khi quét ra)
                 val ticketPrice = 10000.0
                 val ticket = Ticket(
                     userId = userId,
-                    parkingId = "1",
+                    parkingId = "lot1", 
                     startTime = "${currentState.selectedDate} ${currentState.selectedStartTime}",
                     endTime = "${currentState.selectedDate} ${currentState.selectedEndTime}",
                     status = TicketStatus.PENDING,
@@ -108,10 +111,7 @@ class BookingViewModel(
                 )
                 repository.createTicket(ticket)
 
-                val userInfo = repository.getUserInfoByIdOnce(userId)
-                val currentDebt = userInfo?.debt ?: 0.0
-                repository.updateDebt(userId, currentDebt + ticketPrice)
-
+                // 3. Cập nhật HourlyLoad
                 val shift = when(currentState.selectedStartTime) {
                     "07:00" -> 1
                     "09:15" -> 2
@@ -120,11 +120,11 @@ class BookingViewModel(
                     else -> 1
                 }
                 
-                val currentLoad = repository.getLoad("1", currentState.selectedDate, shift)
+                val currentLoad = repository.getLoad("lot1", currentState.selectedDate, shift)
                 if (currentLoad == null) {
-                    repository.updateHourlyLoad(HourlyLoad("1", "1", currentState.selectedDate, shift, 1))
+                    repository.updateHourlyLoad(HourlyLoad(null, "lot1", currentState.selectedDate, shift, 1))
                 } else {
-                    repository.incrementVehicleCount("1", currentState.selectedDate, shift)
+                    repository.incrementVehicleCount("lot1", currentState.selectedDate, shift)
                 }
 
                 _bookingUiState.update { it.copy(isLoading = false) }
