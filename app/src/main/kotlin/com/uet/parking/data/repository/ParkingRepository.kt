@@ -69,6 +69,7 @@ class ParkingRepository(
     }
 
     fun getUserWithProfile(userId: String): Flow<UserWithProfile?> {
+        if (userId.isBlank()) return kotlinx.coroutines.flow.flowOf(null)
         val userFlow = usersCollection.document(userId).snapshots().map { doc ->
             doc.toObject(User::class.java)?.copy(userId = doc.id)
         }
@@ -90,6 +91,7 @@ class ParkingRepository(
     }
 
     fun getAdminWithProfile(adminId: String): Flow<AdminWithProfile?> {
+        if (adminId.isBlank()) return kotlinx.coroutines.flow.flowOf(null)
         val userFlow = usersCollection.document(adminId).snapshots().map { doc ->
             doc.toObject(User::class.java)?.copy(userId = doc.id)
         }
