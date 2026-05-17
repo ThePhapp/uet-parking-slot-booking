@@ -75,8 +75,14 @@ fun LoginScreen(
             
             if (!gEmail.endsWith("@vnu.edu.vn", ignoreCase = true)) {
                 errorText = "Vui lòng sử dụng mail @vnu.edu.vn"
-                auth.signOut()
-                isLoading = false
+                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(context.getString(com.uet.parking.R.string.default_web_client_id))
+                    .requestEmail()
+                    .build()
+                GoogleSignIn.getClient(context, gso).signOut().addOnCompleteListener {
+                    auth.signOut()
+                    isLoading = false
+                }
                 return@rememberLauncherForActivityResult
             }
 
@@ -214,8 +220,12 @@ fun LoginScreen(
                                             .requestEmail()
                                             .build()
                                         val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                                        isLoading = true
+                                        
+                                        // Đảm bảo đăng xuất tài khoản cũ trước khi mở picker
+                                        googleSignInClient.signOut().addOnCompleteListener {
+                                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                            isLoading = true
+                                        }
                                     } catch (e: Exception) {
                                         errorText = "Lỗi khởi tạo Google: ${e.message}"
                                     }
