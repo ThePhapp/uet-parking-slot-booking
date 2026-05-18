@@ -88,6 +88,7 @@ fun BookingFormScreen(
             Spacer(Modifier.height(24.dp))
 
             TimeSelectionSection(
+                selectedDate = uiState.selectedDate,
                 startSlots = startSlots,
                 selectedStartTime = uiState.selectedStartTime,
                 onStartSelect = { viewModel.selectStartTime(it) },
@@ -193,6 +194,7 @@ fun WeekCalendarView(selectedDate: String, onDateSelected: (String) -> Unit) {
 
 @Composable
 fun TimeSelectionSection(
+    selectedDate: String,
     startSlots: List<Pair<String, String>>,
     selectedStartTime: String,
     onStartSelect: (String) -> Unit,
@@ -202,10 +204,10 @@ fun TimeSelectionSection(
 ) {
     Column {
         SectionLabel("Giờ bắt đầu")
-        TimeSlotGrid(slots = startSlots, selectedTime = selectedStartTime, onSelect = onStartSelect)
+        TimeSlotGrid(slots = startSlots, selectedTime = selectedStartTime, onSelect = onStartSelect, selectedDate = selectedDate)
         Spacer(Modifier.height(16.dp))
         SectionLabel("Giờ kết thúc")
-        TimeSlotGrid(slots = endSlots, selectedTime = selectedEndTime, onSelect = onEndSelect)
+        TimeSlotGrid(slots = endSlots, selectedTime = selectedEndTime, onSelect = onEndSelect, selectedDate = selectedDate)
     }
 }
 
@@ -224,26 +226,53 @@ private fun SectionLabel(text: String) {
 private fun TimeSlotGrid(
     slots: List<Pair<String, String>>,
     selectedTime: String,
-    onSelect: (String) -> Unit
+    onSelect: (String) -> Unit,
+    selectedDate: String
 ) {
+    val fullSdf = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+    // Using a key so it updates if needed, though for a booking form, evaluating 'now' once is usually fine.
+    var now by remember { mutableStateOf(Date()) }
+    LaunchedEffect(Unit) {
+        // optionally update 'now' periodically if the screen stays open
+    }
+
     Column {
         slots.chunked(2).forEach { row ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { (label, time) ->
                     val isSelected = selectedTime == time
+                    
+                    var isEnabled = true
+                    try {
+                        val slotTime = fullSdf.parse("$selectedDate $time")
+                        if (slotTime != null) {
+                            val diffHours = (slotTime.time - now.time) / (1000 * 60 * 60.0)
+                            if (diffHours < 1.0) {
+                                isEnabled = false
+                            }
+                        }
+                    } catch (e: Exception) {}
+
                     OutlinedButton(
-                        onClick   = { onSelect(time) },
+                        onClick   = { if(isEnabled) onSelect(time) },
                         modifier  = Modifier.weight(1f).height(52.dp),
+                        enabled   = isEnabled,
                         shape     = RoundedCornerShape(12.dp),
                         colors    = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isSelected) Color(0xFFEEF2FF) else Color(0xFFF2F4F6)
+                            containerColor = if (isSelected) Color(0xFFEEF2FF) else Color(0xFFF2F4F6),
+                            disabledContainerColor = Color(0xFFE0E0E0)
                         ),
                         border = androidx.compose.foundation.BorderStroke(
                             if (isSelected) 2.dp else 1.dp,
-                            if (isSelected) PrimaryBlue else Color(0xFFC3C6D6)
+                            if (isSelected) PrimaryBlue else if (!isEnabled) Color(0xFFBDBDBD) else Color(0xFFC3C6D6)
                         )
                     ) {
-                        Text(label, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = if (isSelected) PrimaryBlue else Color(0xFF434654))
+                        Text(
+                            label, 
+                            fontSize = 13.sp, 
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, 
+                            color = if (isSelected) PrimaryBlue else if (!isEnabled) Color(0xFF9E9E9E) else Color(0xFF434654)
+                        )
                     }
                 }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
