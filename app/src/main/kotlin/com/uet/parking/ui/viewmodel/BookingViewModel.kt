@@ -72,11 +72,21 @@ class BookingViewModel(
         val currentState = _bookingUiState.value
         val fullSdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         
-        val newStart = fullSdf.parse("${currentState.selectedDate} ${currentState.selectedStartTime}")
-        val newEnd = fullSdf.parse("${currentState.selectedDate} ${currentState.selectedEndTime}")
+        val newStartStr = "${currentState.selectedDate} ${currentState.selectedStartTime}"
+        val newEndStr = "${currentState.selectedDate} ${currentState.selectedEndTime}"
+
+        val newStart = fullSdf.parse(newStartStr)
+        val newEnd = fullSdf.parse(newEndStr)
 
         if (newStart == null || newEnd == null || !newStart.before(newEnd)) {
             _bookingUiState.update { it.copy(errorMessage = "Giờ bắt đầu phải sớm hơn giờ kết thúc") }
+            return
+        }
+
+        val now = Date()
+        val diffHours = (newStart.time - now.time) / (1000 * 60 * 60.0)
+        if (diffHours < 1.0) {
+            _bookingUiState.update { it.copy(errorMessage = "Thời gian bắt đầu gửi xe phải cách thời điểm đặt hiện tại ít nhất 1 tiếng") }
             return
         }
 
@@ -99,18 +109,7 @@ class BookingViewModel(
                     return@launch
                 }
 
-                // 2. Tạo vé mới (LƯU Ý: Không cộng nợ tại đây, nợ tính khi quét ra)
-                val ticketPrice = 10000.0
-                val ticket = Ticket(
-                    userId = userId,
-                    parkingId = "1",
-                    startTime = "${currentState.selectedDate} ${currentState.selectedStartTime}",
-                    endTime = "${currentState.selectedDate} ${currentState.selectedEndTime}",
-                    status = TicketStatus.PENDING,
-                    price = ticketPrice
-                )
-                repository.createTicket(ticket)
-
+                // 2. Tìm bãi đỗ xe phù hợp
                 val shift = when(currentState.selectedStartTime) {
                     "07:00" -> 1
                     "09:15" -> 2
@@ -118,12 +117,55 @@ class BookingViewModel(
                     "15:15" -> 4
                     else -> 1
                 }
+
+                val allLots = parkingLots.value.ifEmpty { repository.getAllParkingLots().first() }
+                val sortedLots = allLots.sortedBy { it.parkingId }
+                var selectedLotId: String? = null
+
+                for (lot in sortedLots) {
+                    val capacity = lot.capacity ?: 0
+                    if (capacity == 0) continue
+                    val parkingId = lot.parkingId ?: continue
+
+                    // Ràng buộc sức chứa bãi (90%)
+                    val currentLoad = repository.getLoad(parkingId, currentState.selectedDate, shift)
+                    val vehicleCount = currentLoad?.vehicleCount ?: 0
+                    if (vehicleCount + 1 > capacity * 0.9) continue
+
+                    // Ràng buộc lưu lượng chuyển ca tại giờ bắt đầu
+                    val (startIncoming, startOutgoing) = repository.getShiftFlowLoad(parkingId, newStartStr)
+                    if ((startIncoming + 1) + startOutgoing > capacity * 0.5) continue
+
+                    // Ràng buộc lưu lượng chuyển ca tại giờ kết thúc
+                    val (endIncoming, endOutgoing) = repository.getShiftFlowLoad(parkingId, newEndStr)
+                    if (endIncoming + (endOutgoing + 1) > capacity * 0.5) continue
+
+                    selectedLotId = parkingId
+                    break
+                }
+
+                if (selectedLotId == null) {
+                    _bookingUiState.update { it.copy(isLoading = false, errorMessage = "Không còn bãi phù hợp trong khung giờ này") }
+                    return@launch
+                }
+
+                // 3. Tạo vé mới
+                val ticketPrice = 10000.0
+                val ticket = Ticket(
+                    userId = userId,
+                    parkingId = selectedLotId,
+                    startTime = newStartStr,
+                    endTime = newEndStr,
+                    status = TicketStatus.PENDING,
+                    price = ticketPrice
+                )
+                repository.createTicket(ticket)
                 
-                val currentLoad = repository.getLoad("1", currentState.selectedDate, shift)
+                val currentLoad = repository.getLoad(selectedLotId, currentState.selectedDate, shift)
                 if (currentLoad == null) {
-                    repository.updateHourlyLoad(HourlyLoad(null, "1", currentState.selectedDate, shift, 1))
+                    repository.updateHourlyLoad(HourlyLoad(null, selectedLotId, currentState.selectedDate, shift, 1))
                 } else {
-                    repository.incrementVehicleCount("1", currentState.selectedDate, shift)
+                    repository.incrementVehicleCount(selectedLotId, currentState.selectedDate, shift)
                 }
 
                 _bookingUiState.update { it.copy(isLoading = false) }

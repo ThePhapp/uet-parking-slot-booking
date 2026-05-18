@@ -182,4 +182,16 @@ class ParkingRepository(
             SetOptions.merge()
         ).await()
     }
+
+    suspend fun getShiftFlowLoad(parkingId: String, timeString: String): Pair<Int, Int> {
+        val incomingSnapshot = ticketsCollection
+            .whereEqualTo("parkingId", parkingId)
+            .whereEqualTo("startTime", timeString)
+            .get().await()
+        val outgoingSnapshot = ticketsCollection
+            .whereEqualTo("parkingId", parkingId)
+            .whereEqualTo("endTime", timeString)
+            .get().await()
+        return Pair(incomingSnapshot.size(), outgoingSnapshot.size())
+    }
 }
