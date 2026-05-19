@@ -1,7 +1,6 @@
 package com.uet.parking.ui.screens.schedule
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uet.parking.data.model.StudySchedule
+import com.uet.parking.ui.viewmodel.StudyScheduleViewModel
+import com.uet.parking.ui.viewmodel.StudyScheduleViewModelFactory
 
 @Composable
 fun StudyScheduleScreen(
