@@ -158,7 +158,7 @@ fun MainNavigation(activityContext: android.content.Context) {
                         Screen.HOME.route, Screen.ADMIN_HOME.route -> 0
                         Screen.BOOKING.route, Screen.ADMIN_BOOKING.route -> 1
                         Screen.TICKETS.route -> 2
-                        Screen.SETTINGS.route, Screen.ADMIN_SETTINGS.route -> if (isAdmin) 2 else 3
+                        Screen.SETTINGS.route, Screen.ADMIN_SETTINGS.route, Screen.EDIT_PROFILE.route -> if (isAdmin) 2 else 3
                         else -> 0
                     },
                     onItemSelected = { index ->
@@ -358,7 +358,8 @@ fun MainNavigation(activityContext: android.content.Context) {
                 SettingsScreen(
                     userId = userId,
                     onBackClick = { navController.popBackStack() },
-                    onLogoutClick = handleLogout
+                    onLogoutClick = handleLogout,
+                    onEditProfileClick = { navController.navigate(Screen.EDIT_PROFILE.route) }
                 )
             }
         }

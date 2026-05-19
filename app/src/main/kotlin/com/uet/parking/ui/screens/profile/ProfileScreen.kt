@@ -96,8 +96,10 @@ fun ProfileScreen(userId: String) {
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        ProfileInfoItem(Icons.Default.Badge, "Mã sinh viên", user?.email?.substringBefore("@") ?: "---")
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
+                        if (user?.role == com.uet.parking.data.model.enums.UserRole.USER) {
+                            ProfileInfoItem(Icons.Default.Badge, "Mã sinh viên", user?.email?.substringBefore("@") ?: "---")
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
+                        }
                         ProfileInfoItem(Icons.Default.Email, "Email", user?.email ?: "---")
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
                         ProfileInfoItem(Icons.Default.Phone, "Số điện thoại", "Chưa cập nhật")

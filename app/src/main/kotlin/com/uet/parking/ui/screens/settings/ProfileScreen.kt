@@ -61,14 +61,19 @@ fun ProfileScreen(
             }
 
             item {
+                val infoItems = mutableListOf<InfoItemData>()
+                if (userProfile?.user?.role == com.uet.parking.data.model.enums.UserRole.USER) {
+                    infoItems.add(InfoItemData(Icons.Default.Badge, "Mã sinh viên", userProfile?.info?.studentId ?: "Chưa cập nhật"))
+                }
+                infoItems.addAll(listOf(
+                    InfoItemData(Icons.Default.Call, "Số điện thoại", userProfile?.info?.phoneNumber ?: "Chưa cập nhật"),
+                    InfoItemData(Icons.Default.Cake, "Ngày sinh", userProfile?.info?.birthday ?: "Chưa cập nhật"),
+                    InfoItemData(Icons.Default.Wc, "Giới tính", userProfile?.info?.gender ?: "Chưa cập nhật")
+                ))
+
                 InfoCard(
                     title = "THÔNG TIN CHI TIẾT",
-                    items = listOf(
-                        InfoItemData(Icons.Default.Badge, "Mã sinh viên", userProfile?.info?.studentId ?: "Chưa cập nhật"),
-                        InfoItemData(Icons.Default.Call, "Số điện thoại", userProfile?.info?.phoneNumber ?: "Chưa cập nhật"),
-                        InfoItemData(Icons.Default.Cake, "Ngày sinh", userProfile?.info?.birthday ?: "Chưa cập nhật"),
-                        InfoItemData(Icons.Default.Wc, "Giới tính", userProfile?.info?.gender ?: "Chưa cập nhật")
-                    )
+                    items = infoItems
                 )
             }
 

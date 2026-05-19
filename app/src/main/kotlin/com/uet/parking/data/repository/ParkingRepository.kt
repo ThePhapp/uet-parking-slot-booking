@@ -53,6 +53,14 @@ class ParkingRepository(
         return docRef.id
     }
 
+    suspend fun updateUserName(userId: String, newName: String) {
+        usersCollection.document(userId).update("name", newName).await()
+    }
+
+    suspend fun updatePassword(userId: String, newPass: String) {
+        usersCollection.document(userId).update("password", newPass).await()
+    }
+
     // --- User Info & Debt ---
     suspend fun createUserInfo(userInfo: UserInfo) {
         userInfoCollection.document(userInfo.userId).set(userInfo).await()
