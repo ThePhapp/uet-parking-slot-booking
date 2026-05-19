@@ -98,7 +98,7 @@ fun MainNavigation(activityContext: android.content.Context) {
         else if (currentRoute?.startsWith("admin") == true) {
             if (userRole == null) userRole = UserRole.ADMIN // Fallback
         }
-        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route, Screen.PAYMENT.route)) {
+        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route, Screen.PAYMENT.route, Screen.STUDY_SCHEDULE.route)) {
             if (userRole == null) userRole = UserRole.USER // Fallback
         }
     }

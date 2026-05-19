@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uet.parking.data.model.StudySchedule
 import com.uet.parking.ui.viewmodel.StudyScheduleViewModel
@@ -43,10 +44,7 @@ fun StudyScheduleScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = "Dạng Google Calendar",
-                    color = Color.Gray
-                )
+
             }
 
             Button(onClick = { showDialog = true }) {
@@ -117,7 +115,7 @@ private fun WeeklyCalendarGrid(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(72.dp)
+                            .height(92.dp)
                     ) {
                         Box(
                             modifier = Modifier
@@ -135,6 +133,8 @@ private fun WeeklyCalendarGrid(
                                         hour < it.endHour
                             }
 
+                            val isStartCell = scheduleAtCell != null && hour == scheduleAtCell.startHour
+
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -146,26 +146,35 @@ private fun WeeklyCalendarGrid(
                                         else
                                             Color(0xFFFDFDFD),
                                         shape = RoundedCornerShape(10.dp)
-                                    )
+                                    ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                if (scheduleAtCell != null && hour == scheduleAtCell.startHour) {
+                                if (scheduleAtCell != null) {
                                     Column(
-                                        modifier = Modifier.padding(6.dp)
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Text(
                                             text = scheduleAtCell.subjectName,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF1A73E8)
+                                            color = Color(0xFF1A73E8),
+                                            fontSize = 10.sp,
+                                            maxLines = 1,
+                                            softWrap = false
                                         )
-                                        Text(
-                                            text = "${scheduleAtCell.startHour}:00 - ${scheduleAtCell.endHour}:00",
-                                            fontSize = MaterialTheme.typography.bodySmall.fontSize
-                                        )
-                                        Text(
-                                            text = scheduleAtCell.room,
-                                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                            color = Color.Gray
-                                        )
+
+                                        if (scheduleAtCell.room.isNotBlank()) {
+                                            Text(
+                                                text = scheduleAtCell.room,
+                                                color = Color(0xFF5F6368),
+                                                fontSize = 9.sp,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                        }
                                     }
                                 }
                             }
