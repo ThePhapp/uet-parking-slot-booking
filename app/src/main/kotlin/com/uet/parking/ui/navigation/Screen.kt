@@ -14,7 +14,9 @@ enum class Screen(val route: String) {
     ADMIN_BOOKING("admin_booking"),
     ADMIN_SETTINGS("admin_settings"),
     EDIT_PROFILE("edit_profile"),
-    PAYMENT("payment");
+    PAYMENT("payment"),
+
+    STUDY_SCHEDULE("study_schedule");
 
     fun withId(id: String): String = route.replace("{lotId}", id)
 }
