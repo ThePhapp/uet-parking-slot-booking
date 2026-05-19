@@ -48,6 +48,7 @@ import com.uet.parking.ui.theme.ParkingTheme
 import com.uet.parking.ui.viewmodel.*
 import com.uet.parking.ui.screens.payment.PaymentScreen
 import com.uet.parking.ui.navigation.Screen
+import com.uet.parking.ui.screens.schedule.StudyScheduleScreen
 
 @androidx.compose.material3.ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
@@ -97,7 +98,7 @@ fun MainNavigation(activityContext: android.content.Context) {
         else if (currentRoute?.startsWith("admin") == true) {
             if (userRole == null) userRole = UserRole.ADMIN // Fallback
         }
-        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route, Screen.PAYMENT.route)) {
+        else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route, Screen.PAYMENT.route, Screen.STUDY_SCHEDULE.route)) {
             if (userRole == null) userRole = UserRole.USER // Fallback
         }
     }
@@ -121,6 +122,7 @@ fun MainNavigation(activityContext: android.content.Context) {
                         currentRoute == Screen.PAYMENT.route -> "Thanh toán"
                         currentRoute?.startsWith("admin_detail") == true -> "Chi tiết bãi đỗ"
                         currentRoute == Screen.ADMIN_BOOKING.route -> "Lịch trình đặt chỗ"
+                        currentRoute == Screen.STUDY_SCHEDULE.route -> "Lịch học"
                         else -> "Campus Parking"
                     },
                     showBack = currentRoute?.startsWith("admin_detail") == true ||
@@ -130,7 +132,8 @@ fun MainNavigation(activityContext: android.content.Context) {
                                 Screen.SEARCHING.route,
                                 Screen.SUCCESS.route,
                                 Screen.PAYMENT.route,
-                                Screen.EDIT_PROFILE.route
+                                Screen.EDIT_PROFILE.route,
+                                Screen.STUDY_SCHEDULE.route
                             ),
                     onBackClick = { navController.popBackStack() },
                     onHomeClick = {
@@ -216,6 +219,7 @@ fun MainNavigation(activityContext: android.content.Context) {
                     viewModel = homeViewModel,
                     onBookNow = { navController.navigate(Screen.BOOKING.route) },
                     onPaymentClick = { navController.navigate(Screen.PAYMENT.route) },
+                    onStudyScheduleClick = { navController.navigate(Screen.STUDY_SCHEDULE.route) },
                     onSettingsClick = { navController.navigate(Screen.SETTINGS.route) }
                 )
             }
@@ -234,6 +238,11 @@ fun MainNavigation(activityContext: android.content.Context) {
                         }
                     }
                 )
+            }
+
+            composable(Screen.STUDY_SCHEDULE.route) {
+                val userId = currentUserId ?: ""
+                StudyScheduleScreen(userId = userId)
             }
 
             composable(Screen.BOOKING.route) {

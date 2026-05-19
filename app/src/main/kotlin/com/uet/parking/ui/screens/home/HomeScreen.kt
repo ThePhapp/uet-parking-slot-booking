@@ -34,6 +34,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onBookNow: () -> Unit = {},
     onPaymentClick: () -> Unit = {},
+    onStudyScheduleClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
     val userWithProfile by viewModel.userProfile.collectAsState()
@@ -117,11 +118,32 @@ fun HomeScreen(
                             colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
                             Column(
-                                modifier = Modifier.fillMaxSize().padding(16.dp),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("🚗", fontSize = 28.sp)
-                                Text("Đặt xe", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("🚗", fontSize = 24.sp)
+                                Text("Đặt xe", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(100.dp)
+                                .clickable { onStudyScheduleClick() },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("📅", fontSize = 24.sp)
+                                Text("Lịch học", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
 
@@ -137,11 +159,13 @@ fun HomeScreen(
                             colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
                             Column(
-                                modifier = Modifier.fillMaxSize().padding(16.dp),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("💳", fontSize = 28.sp)
-                                Text("Thanh toán", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("💳", fontSize = 24.sp)
+                                Text("Thanh toán", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
                     }
