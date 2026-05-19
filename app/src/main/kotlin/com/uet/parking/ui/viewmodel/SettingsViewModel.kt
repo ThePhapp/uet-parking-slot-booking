@@ -23,9 +23,12 @@ class SettingsViewModel(
             initialValue = null
         )
 
-    fun updateProfile(info: UserInfo) {
+    fun updateProfile(info: UserInfo, newName: String? = null) {
         viewModelScope.launch {
             repository.createUserInfo(info)
+            if (newName != null) {
+                repository.updateUserName(userId, newName)
+            }
         }
     }
 

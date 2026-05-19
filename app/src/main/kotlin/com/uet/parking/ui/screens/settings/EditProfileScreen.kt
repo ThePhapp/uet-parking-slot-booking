@@ -34,12 +34,13 @@ fun EditProfileScreen(
     // 1. Theo dõi dữ liệu từ ViewModel
     val userProfile by viewModel.userProfile.collectAsState()
     
-    
+    var name by remember { mutableStateOf("") }
     var studentId by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var birthday by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
 
+    var nameError by remember { mutableStateOf<String?>(null) }
     var phoneNumberError by remember { mutableStateOf<String?>(null) }
     var birthdayError by remember { mutableStateOf<String?>(null) }
 
@@ -53,6 +54,9 @@ fun EditProfileScreen(
 
     // 2. Cập nhật state khi dữ liệu từ DB được tải lên thành công
     LaunchedEffect(userProfile) {
+        userProfile?.user?.let {
+            name = it.name ?: ""
+        }
         userProfile?.info?.let {
             studentId = it.studentId ?: ""
             phoneNumber = it.phoneNumber ?: ""
@@ -61,19 +65,7 @@ fun EditProfileScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Chỉnh sửa thông tin", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
-            )
-        }
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -85,11 +77,25 @@ fun EditProfileScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             EditField(
-                label = "Mã sinh viên",
-                value = studentId,
-                onValueChange = { studentId = it },
-                icon = Icons.Default.Badge
+                label = "Họ và tên",
+                value = name,
+                onValueChange = { 
+                    name = it
+                    nameError = if (it.isBlank()) "Không được để trống họ tên" else null
+                },
+                icon = Icons.Default.Person,
+                isError = nameError != null,
+                errorMessage = nameError
             )
+
+            if (userProfile?.user?.role == com.uet.parking.data.model.enums.UserRole.USER) {
+                EditField(
+                    label = "Mã sinh viên",
+                    value = studentId,
+                    onValueChange = { studentId = it },
+                    icon = Icons.Default.Badge
+                )
+            }
 
             EditField(
                 label = "Số điện thoại",
@@ -127,10 +133,11 @@ fun EditProfileScreen(
             // 3. Nút Lưu với logic cập nhật an toàn
             Button(
                 onClick = {
+                    val isNameValid = name.isNotBlank()
                     val isPhoneValid = phoneNumber.isEmpty() || validatePhoneNumber(phoneNumber)
                     val isDateValid = birthday.isEmpty() || validateDate(birthday)
                     
-                    if (isPhoneValid && isDateValid) {
+                    if (isNameValid && isPhoneValid && isDateValid) {
                         val updatedInfo = UserInfo(
                             userId = viewModel.userId,
                             studentId = studentId,
@@ -139,9 +146,10 @@ fun EditProfileScreen(
                             gender = gender,
                             debt = userProfile?.info?.debt ?: 0.0
                         )
-                        viewModel.updateProfile(updatedInfo)
+                        viewModel.updateProfile(updatedInfo, name)
                         onBackClick() // Quay lại màn hình Profile sau khi lưu
                     } else {
+                        if (!isNameValid) nameError = "Không được để trống họ tên"
                         if (!isPhoneValid) phoneNumberError = "Số điện thoại không hợp lệ (10 chữ số)"
                         if (!isDateValid) birthdayError = "Ngày sinh không đúng định dạng DD/MM/YYYY"
                     }

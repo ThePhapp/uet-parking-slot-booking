@@ -220,8 +220,6 @@ fun LoginScreen(
                                             .requestEmail()
                                             .build()
                                         val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                                        
-                                        // Đảm bảo đăng xuất tài khoản cũ trước khi mở picker
                                         googleSignInClient.signOut().addOnCompleteListener {
                                             googleSignInLauncher.launch(googleSignInClient.signInIntent)
                                             isLoading = true
@@ -340,7 +338,9 @@ fun LoginScreen(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PrimaryBlue,
-                        modifier = Modifier.clickable { /* Handle forgot pass */ }
+                        modifier = Modifier.clickable { 
+                            Toast.makeText(context, "Vui lòng liên hệ phòng đào tạo để lấy lại mật khẩu", Toast.LENGTH_LONG).show()
+                        }
                     )
                 }
             }
@@ -353,7 +353,10 @@ fun LoginScreen(
 
         // Floating Help Button
         FloatingActionButton(
-            onClick = { /* Help logic */ },
+            onClick = { 
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://uet.vnu.edu.vn/"))
+                context.startActivity(intent)
+            },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(24.dp),
