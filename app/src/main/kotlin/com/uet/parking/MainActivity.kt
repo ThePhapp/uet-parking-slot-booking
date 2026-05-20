@@ -1,9 +1,14 @@
 package com.uet.parking
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,8 +20,10 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -54,6 +61,7 @@ import com.uet.parking.ui.screens.schedule.StudyScheduleScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.uet.parking.utils.NotificationHelper.createNotificationChannel(this)
         setContent {
             ParkingTheme {
                 MainNavigation(activityContext = this)
@@ -105,6 +113,39 @@ fun MainNavigation(activityContext: android.content.Context) {
 
     val isAdmin = userRole == UserRole.ADMIN || userRole == UserRole.GUARD
     val isUser = userRole == UserRole.USER
+
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        var hasNotificationPermission by remember {
+            mutableStateOf(
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            )
+        }
+
+        val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+            contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+            onResult = { isGranted ->
+                hasNotificationPermission = isGranted
+            }
+        )
+
+        LaunchedEffect(Unit) {
+            if (!hasNotificationPermission) {
+                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    val ticketIdFromIntent = (activityContext as? android.app.Activity)?.intent?.getStringExtra("ticketId")
+    
+    LaunchedEffect(currentUserId, userRole, ticketIdFromIntent) {
+        if (currentUserId != null && ticketIdFromIntent != null) {
+            navController.navigate(Screen.TICKETS.route)
+            (activityContext as? android.app.Activity)?.intent?.removeExtra("ticketId")
+        }
+    }
 
     Scaffold(
         topBar = {

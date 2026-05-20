@@ -57,7 +57,7 @@ class ParkingLotDetailViewModel(
         }
     }
 
-    fun processCheckIn(ticketCode: String) {
+    fun processCheckIn(context: android.content.Context, ticketCode: String) {
         val ticketId = extractId(ticketCode)
         if (ticketId == null) {
             _toastMessage.value = "Mã vé không hợp lệ"
@@ -98,12 +98,15 @@ class ParkingLotDetailViewModel(
             repository.updateCurrentOccupancy(lotId, (currentLot?.current ?: 0) + 1)
             repository.incrementKPI(adminId)
             android.util.Log.d("QR_SCAN_DEBUG", "👉 thành")
+            
+            com.uet.parking.utils.NotificationHelper.showCheckInSuccess(context, ticketId)
+            
             _toastMessage.value = "Quét vào thành công! Xe đã vào bãi."
             refreshLotData()
         }
     }
 
-    fun processCheckOut(ticketCode: String) {
+    fun processCheckOut(context: android.content.Context, ticketCode: String) {
         val ticketId = extractId(ticketCode)
         if (ticketId == null) {
             _toastMessage.value = "Mã vé không hợp lệ"
@@ -137,6 +140,9 @@ class ParkingLotDetailViewModel(
             // 2. Xóa vé và cập nhật bãi
             repository.incrementKPI(adminId)
             repository.deleteTicket(ticketId)
+            
+            com.uet.parking.utils.NotificationScheduler.cancelNotifications(context, ticketId)
+            com.uet.parking.utils.NotificationHelper.showCheckOutSuccess(context, ticketId)
 
             val newCount = ((currentLot?.current ?: 0) - 1).coerceAtLeast(0)
             repository.updateCurrentOccupancy(lotId, newCount)
