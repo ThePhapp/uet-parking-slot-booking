@@ -68,7 +68,7 @@ class BookingViewModel(
         _bookingUiState.update { it.copy(selectedEndTime = time, errorMessage = "") }
     }
 
-    fun createBooking(onSuccess: () -> Unit = {}) {
+    fun createBooking(context: android.content.Context, onSuccess: () -> Unit = {}) {
         val currentState = _bookingUiState.value
         val fullSdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         
@@ -159,7 +159,7 @@ class BookingViewModel(
                     status = TicketStatus.PENDING,
                     price = ticketPrice
                 )
-                repository.createTicket(ticket)
+                val newTicketId = repository.createTicket(ticket)
                 
                 val currentLoad = repository.getLoad(selectedLotId, currentState.selectedDate, shift)
                 if (currentLoad == null) {
@@ -167,6 +167,11 @@ class BookingViewModel(
                 } else {
                     repository.incrementVehicleCount(selectedLotId, currentState.selectedDate, shift)
                 }
+
+                val fullTicket = ticket.copy(ticketId = newTicketId)
+                com.uet.parking.utils.NotificationHelper.showBookingSuccess(context, newTicketId)
+                com.uet.parking.utils.NotificationScheduler.schedulePreBookingNotification(context, fullTicket)
+                com.uet.parking.utils.NotificationScheduler.schedulePostBookingNotification(context, fullTicket)
 
                 _bookingUiState.update { it.copy(isLoading = false) }
                 onSuccess()
@@ -176,10 +181,12 @@ class BookingViewModel(
         }
     }
 
-    fun deleteTicket(ticketId: String) {
+    fun deleteTicket(context: android.content.Context, ticketId: String) {
         viewModelScope.launch {
             try {
                 repository.deleteTicket(ticketId)
+                com.uet.parking.utils.NotificationHelper.showTicketCancelled(context, ticketId)
+                com.uet.parking.utils.NotificationScheduler.cancelNotifications(context, ticketId)
             } catch (e: Exception) {
                 _bookingUiState.update { it.copy(errorMessage = "Lỗi xóa vé: ${e.message}") }
             }

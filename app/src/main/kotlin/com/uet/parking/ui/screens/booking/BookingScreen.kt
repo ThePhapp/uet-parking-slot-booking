@@ -108,9 +108,10 @@ fun BookingFormScreen(
 
             Spacer(Modifier.height(32.dp))
 
+            val context = LocalContext.current
             Button(
                 onClick = {
-                    viewModel.createBooking {
+                    viewModel.createBooking(context) {
                         onContinue(uiState.selectedDate, uiState.selectedStartTime, uiState.selectedEndTime)
                     }
                 },

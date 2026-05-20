@@ -104,11 +104,11 @@ fun AdminQrScanScreen(
             if (hasCameraPermission) {
                 QrScannerView(
                     onCodeScanned = { code ->
-                        Log.d("QR_SCAN_DEBUG", "👉 Camera phát hiện CODE: $code")
+                        android.util.Log.d("QR_SCAN_DEBUG", "👉 Camera phát hiện CODE: $code")
                         if (mode == "checkin") {
-                            viewModel.processCheckIn(code)
+                            viewModel.processCheckIn(context, code)
                         } else {
-                            viewModel.processCheckOut(code)
+                            viewModel.processCheckOut(context, code)
                         }
                     }
                 )
