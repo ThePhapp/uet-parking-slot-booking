@@ -179,12 +179,14 @@ class ParkingRepository(
     }
 
     suspend fun updateHourlyLoad(load: HourlyLoad) {
-        val docId = "${load.parkingId}_${load.date}_${load.shift}"
+        val safeDate = load.date?.replace("/", "-") ?: "unknown"
+        val docId = "${load.parkingId}_${safeDate}_${load.shift}"
         hourlyLoadsCollection.document(docId).set(load, SetOptions.merge()).await()
     }
 
     suspend fun incrementVehicleCount(parkingId: String, date: String, shift: Int) {
-        val docId = "${parkingId}_${date}_${shift}"
+        val safeDate = date.replace("/", "-")
+        val docId = "${parkingId}_${safeDate}_${shift}"
         hourlyLoadsCollection.document(docId).set(
             mapOf("vehicleCount" to FieldValue.increment(1)),
             SetOptions.merge()
