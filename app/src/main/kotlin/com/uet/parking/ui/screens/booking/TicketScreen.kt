@@ -101,9 +101,8 @@ fun TicketScreen(viewModel: BookingViewModel) {
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            // FIX: Sử dụng ticketId (String) thay vì đối tượng Ticket
                             ticketToDelete?.ticketId?.let { id ->
-                                viewModel.deleteTicket(id)
+                                viewModel.deleteTicket(context, id)
                                 showDeleteDialog = false
                                 ticketToDelete = null
                             }
