@@ -92,14 +92,13 @@ fun MainNavigation(activityContext: android.content.Context) {
 
     LaunchedEffect(currentRoute) {
         if (currentRoute == Screen.AUTH.route) {
-            // Already handled by handleLogout, but for safety:
-            // if navigated here manually (e.g. back button if not cleared)
+            // Handled
         }
         else if (currentRoute?.startsWith("admin") == true) {
-            if (userRole == null) userRole = UserRole.ADMIN // Fallback
+            if (userRole == null) userRole = UserRole.ADMIN
         }
         else if (currentRoute in listOf(Screen.HOME.route, Screen.BOOKING.route, Screen.TICKETS.route, Screen.SETTINGS.route, Screen.PAYMENT.route, Screen.STUDY_SCHEDULE.route)) {
-            if (userRole == null) userRole = UserRole.USER // Fallback
+            if (userRole == null) userRole = UserRole.USER
         }
     }
 
@@ -304,7 +303,7 @@ fun MainNavigation(activityContext: android.content.Context) {
                 )
             }
 
-            // --- Admin Routes ---
+            // --- Admin Detail Route ---
             composable(Screen.ADMIN_HOME.route) {
                 AdminHomepage(
                     userId = currentUserId ?: "",
@@ -316,25 +315,21 @@ fun MainNavigation(activityContext: android.content.Context) {
 
             composable(Screen.ADMIN_DETAIL.route) { backStackEntry ->
                 val lotId = backStackEntry.arguments?.getString("lotId") ?: ""
-
-                // Đã chỉ định rõ kiểu dữ liệu String để sửa lỗi "Cannot infer type"
                 val scanResultState = backStackEntry.savedStateHandle.getLiveData<String>("scan_result").observeAsState()
 
                 ParkingLotDetailPage(
                     lotId = lotId,
                     adminId = currentUserId ?: "",
+                    scanResult = scanResultState.value,
+                    onScanResultHandled = {
+                        // Xóa message sau khi DetailPage đã refresh xong
+                        backStackEntry.savedStateHandle.remove<String>("scan_result")
+                    },
                     onBack = { navController.popBackStack() },
                     onNavigateToQrScan = { id, mode ->
                         navController.navigate("admin_qr_scan/$id/$mode")
                     }
                 )
-
-                LaunchedEffect(scanResultState.value) {
-                    scanResultState.value?.let { message ->
-                        Toast.makeText(activityContext, message, Toast.LENGTH_LONG).show()
-                        backStackEntry.savedStateHandle.remove<String>("scan_result")
-                    }
-                }
             }
 
             composable("admin_qr_scan/{lotId}/{mode}") { backStackEntry ->
@@ -345,7 +340,7 @@ fun MainNavigation(activityContext: android.content.Context) {
                     lotId = lotId,
                     adminId = currentUserId ?: "",
                     mode = mode,
-                    onBackWithMessage = { message -> // Sửa từ onBack thành onBackWithMessage để khớp 100% với file QR của bạn
+                    onBackWithMessage = { message ->
                         navController.previousBackStackEntry?.savedStateHandle?.set("scan_result", message)
                         navController.popBackStack()
                     }

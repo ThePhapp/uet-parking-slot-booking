@@ -1,6 +1,7 @@
 package com.uet.parking.ui.screens.admin
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.pipeline.Expression.Companion.log
 import com.uet.parking.data.model.ParkingLot
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.*
@@ -71,7 +73,7 @@ fun AdminHomepage(
             item(span = { GridItemSpan(maxLineSpan) }) {
                 QuickActionsCard(
                     onManageLotClick = {
-                        adminProfile?.adminInfo?.parkingId?.let { id ->
+                        adminProfile?.adminInfo?.parkingLotId?.let { id ->
                             onNavigateToDetail(id)
                         }
                     }
