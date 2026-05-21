@@ -169,7 +169,6 @@ class BookingViewModel(
                 }
 
                 val fullTicket = ticket.copy(ticketId = newTicketId)
-                com.uet.parking.utils.NotificationHelper.showBookingSuccess(context, newTicketId)
                 com.uet.parking.utils.NotificationScheduler.schedulePreBookingNotification(context, fullTicket)
                 com.uet.parking.utils.NotificationScheduler.schedulePostBookingNotification(context, fullTicket)
 

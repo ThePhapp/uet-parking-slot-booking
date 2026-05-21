@@ -12,7 +12,7 @@ import com.uet.parking.MainActivity
 @kotlin.OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 object NotificationHelper {
 
-    private const val CHANNEL_ID = "parking_notifications"
+    private const val CHANNEL_ID = "parking_notifications_v2"
     private const val CHANNEL_NAME = "Parking Notifications"
     private const val CHANNEL_DESC = "Notifications for parking tickets and updates"
 
@@ -21,7 +21,7 @@ object NotificationHelper {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = CHANNEL_DESC
             }
@@ -49,7 +49,7 @@ object NotificationHelper {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(content)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 

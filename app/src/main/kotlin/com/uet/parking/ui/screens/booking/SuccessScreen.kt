@@ -49,6 +49,17 @@ fun SuccessScreen(
         }
     }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var notifiedTicketId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    
+    LaunchedEffect(latestTicket?.ticketId) {
+        val ticketId = latestTicket?.ticketId
+        if (ticketId != null && ticketId != notifiedTicketId) {
+            com.uet.parking.utils.NotificationHelper.showBookingSuccess(context, ticketId)
+            notifiedTicketId = ticketId
+        }
+    }
+
     val fullStartTime = latestTicket?.startTime ?: "--- ---"
     val date = fullStartTime.substringBefore(" ", "---")
     val startTime = fullStartTime.substringAfter(" ", "---")
