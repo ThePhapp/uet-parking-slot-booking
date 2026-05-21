@@ -8,7 +8,8 @@ import com.uet.parking.data.repository.StudyScheduleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 class StudyScheduleViewModel(
     private val userId: String
 ) : ViewModel() {
@@ -41,6 +42,12 @@ class StudyScheduleViewModel(
             } finally {
                 _isSaving.value = false
             }
+        }
+    }
+
+    fun deleteSchedule(scheduleId: String) {
+        viewModelScope.launch {
+            repository.deleteSchedule(scheduleId)
         }
     }
 }

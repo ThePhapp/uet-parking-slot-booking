@@ -35,4 +35,11 @@ class StudyScheduleRepository {
         val doc = collection.document()
         doc.set(schedule.copy(id = doc.id)).await()
     }
+
+    suspend fun deleteSchedule(scheduleId: String) {
+        collection
+            .document(scheduleId)
+            .delete()
+            .await()
+    }
 }

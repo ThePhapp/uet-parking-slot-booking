@@ -17,8 +17,7 @@ fun CreateScheduleDialog(
     var room by remember { mutableStateOf("") }
     var teacherName by remember { mutableStateOf("") }
     var dayOfWeekText by remember { mutableStateOf("2") }
-    var startHourText by remember { mutableStateOf("7") }
-    var endHourText by remember { mutableStateOf("9") }
+    var shiftText by remember { mutableStateOf("1") }
     var note by remember { mutableStateOf("") }
 
     AlertDialog(
@@ -54,25 +53,19 @@ fun CreateScheduleDialog(
                 OutlinedTextField(
                     value = dayOfWeekText,
                     onValueChange = { dayOfWeekText = it },
-                    label = { Text("Thứ: 2,3,4,5,6,7,8(CN)") },
+                    label = { Text("Thứ: 2,3,4,5,6,7") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = startHourText,
-                        onValueChange = { startHourText = it },
-                        label = { Text("Giờ bắt đầu") },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    OutlinedTextField(
-                        value = endHourText,
-                        onValueChange = { endHourText = it },
-                        label = { Text("Giờ kết thúc") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                OutlinedTextField(
+                    value = shiftText,
+                    onValueChange = { shiftText = it },
+                    label = { Text("Ca học: 1, 2, 3, 4") },
+                    supportingText = {
+                        Text("Ca 1: 7h-9h40 | Ca 2: 9h50-12h30 | Ca 3: 13h30-16h20 | Ca 4: 16h30-19h")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 OutlinedTextField(
                     value = note,
@@ -91,8 +84,8 @@ fun CreateScheduleDialog(
                         room = room,
                         teacherName = teacherName,
                         dayOfWeek = dayOfWeekText.toIntOrNull() ?: 2,
-                        startHour = startHourText.toIntOrNull() ?: 7,
-                        endHour = endHourText.toIntOrNull() ?: 9,
+                        startHour = shiftText.toIntOrNull() ?: 1,
+                        endHour = shiftText.toIntOrNull() ?: 1,
                         note = note
                     )
 

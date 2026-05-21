@@ -16,7 +16,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uet.parking.data.model.StudySchedule
 import com.uet.parking.ui.viewmodel.StudyScheduleViewModel
 import com.uet.parking.ui.viewmodel.StudyScheduleViewModelFactory
-
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun StudyScheduleScreen(
     userId: String,
@@ -25,7 +37,9 @@ fun StudyScheduleScreen(
     )
 ) {
     val schedules by viewModel.schedules.collectAsState()
+    val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
+    var selectedSchedule by remember { mutableStateOf<StudySchedule?>(null) }
 
     Column(
         modifier = Modifier
@@ -54,16 +68,72 @@ fun StudyScheduleScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        WeeklyCalendarGrid(schedules = schedules)
+        WeeklyCalendarGrid(
+            schedules = schedules,
+            onScheduleClick = { schedule ->
+                selectedSchedule = schedule
+            },
+            onEmptyClick = {
+                selectedSchedule = null
+            }
+        )
+
+
     }
 
     if (showDialog) {
         CreateScheduleDialog(
             userId = userId,
             onDismiss = { showDialog = false },
-            onSave = {
-                viewModel.addSchedule(it)
-                showDialog = false
+            onSave = { newSchedule ->
+                val isDuplicate = schedules.any {
+                    it.dayOfWeek == newSchedule.dayOfWeek &&
+                            it.startHour == newSchedule.startHour
+                }
+
+                if (isDuplicate) {
+                    Toast.makeText(
+                        context,
+                        "Không được tạo lịch học trùng",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    viewModel.addSchedule(newSchedule)
+                    showDialog = false
+                }
+            }
+        )
+    }
+
+    selectedSchedule?.let { schedule ->
+        AlertDialog(
+            onDismissRequest = {
+                selectedSchedule = null
+            },
+            title = {
+                Text("Xóa lịch học")
+            },
+            text = {
+                Text("Bạn có muốn xóa lịch học ${schedule.subjectName} không?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteSchedule(schedule.id)
+                        selectedSchedule = null
+                    }
+                ) {
+                    Text("Xóa")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        selectedSchedule = null
+                    }
+                ) {
+                    Text("Hủy")
+                }
             }
         )
     }
@@ -71,19 +141,27 @@ fun StudyScheduleScreen(
 
 @Composable
 private fun WeeklyCalendarGrid(
-    schedules: List<StudySchedule>
+    schedules: List<StudySchedule>,
+    onScheduleClick: (StudySchedule) -> Unit,
+    onEmptyClick: () -> Unit
 ) {
+    val horizontalScrollState = rememberScrollState()
+
     val days = listOf(
         2 to "T2",
         3 to "T3",
         4 to "T4",
         5 to "T5",
         6 to "T6",
-        7 to "T7",
-        8 to "CN"
+        7 to "T7"
     )
 
-    val hours = (7..18).toList()
+    val shifts = listOf(
+        Triple(1, "Ca 1", "7h - 9h40"),
+        Triple(2, "Ca 2", "9h50 - 12h30"),
+        Triple(3, "Ca 3", "13h30 - 16h20"),
+        Triple(4, "Ca 4", "16h30 - 19h")
+    )
 
     Card(
         modifier = Modifier.fillMaxSize(),
@@ -91,16 +169,18 @@ private fun WeeklyCalendarGrid(
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         LazyColumn(
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier
+                .padding(8.dp)
+                .horizontalScroll(horizontalScrollState)
         ) {
             item {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Box(modifier = Modifier.width(48.dp))
+                Row {
+                    Box(modifier = Modifier.width(64.dp))
 
                     days.forEach { (_, label) ->
                         Box(
                             modifier = Modifier
-                                .weight(1f)
+                                .width(92.dp)
                                 .height(40.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -110,71 +190,86 @@ private fun WeeklyCalendarGrid(
                 }
             }
 
-            hours.forEach { hour ->
+            shifts.forEach { (shiftNumber, shiftName, shiftTime) ->
                 item {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(92.dp)
+                        modifier = Modifier.height(112.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .width(48.dp)
+                                .width(64.dp)
                                 .fillMaxHeight(),
                             contentAlignment = Alignment.TopCenter
                         ) {
-                            Text("${hour}:00", color = Color.Gray)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = shiftName,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = shiftTime,
+                                    color = Color.Gray,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
 
                         days.forEach { (dayNumber, _) ->
                             val scheduleAtCell = schedules.firstOrNull {
                                 it.dayOfWeek == dayNumber &&
-                                        hour >= it.startHour &&
-                                        hour < it.endHour
+                                        it.startHour == shiftNumber
                             }
-
-                            val isStartCell = scheduleAtCell != null && hour == scheduleAtCell.startHour
 
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .width(92.dp)
                                     .fillMaxHeight()
-                                    .padding(2.dp)
+                                    .padding(4.dp)
                                     .background(
                                         color = if (scheduleAtCell != null)
                                             Color(0xFFE8F0FE)
                                         else
                                             Color(0xFFFDFDFD),
-                                        shape = RoundedCornerShape(10.dp)
-                                    ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        if (scheduleAtCell != null) {
+                                            onScheduleClick(scheduleAtCell)
+                                        } else {
+                                            onEmptyClick()
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (scheduleAtCell != null) {
                                     Column(
                                         modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(horizontal = 4.dp, vertical = 6.dp),
-                                        verticalArrangement = Arrangement.Center,
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 6.dp, vertical = 6.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Text(
                                             text = scheduleAtCell.subjectName,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF1A73E8),
-                                            fontSize = 10.sp,
-                                            maxLines = 1,
-                                            softWrap = false
+                                            fontSize = 11.sp,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Center
                                         )
 
-                                        if (scheduleAtCell.room.isNotBlank()) {
-                                            Text(
-                                                text = scheduleAtCell.room,
-                                                color = Color(0xFF5F6368),
-                                                fontSize = 9.sp,
-                                                maxLines = 1,
-                                                softWrap = false
-                                            )
-                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        Text(
+                                            text = scheduleAtCell.room,
+                                            color = Color.Gray,
+                                            fontSize = 10.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Center
+                                        )
                                     }
                                 }
                             }
