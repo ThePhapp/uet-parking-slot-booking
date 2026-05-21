@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
@@ -35,13 +34,14 @@ import com.uet.parking.ui.theme.SurfaceVariant
 import com.uet.parking.ui.viewmodel.ParkingLotDetailViewModel
 import com.uet.parking.ui.viewmodel.ParkingLotDetailViewModelFactory
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ParkingLotDetailPage(
     lotId: String,
     adminId: String,
+    scanResult: String? = null,
+    onScanResultHandled: () -> Unit = {},
     onBack: () -> Unit,
-    onNavigateToQrScan: (String, String) -> Unit // lotId, mode ("checkin" or "checkout")
+    onNavigateToQrScan: (String, String) -> Unit
 ) {
     val context = LocalContext.current
     val firestore = remember { FirebaseFirestore.getInstance() }
@@ -55,10 +55,7 @@ fun ParkingLotDetailPage(
     val nextShiftLoad by viewModel.nextShiftLoad.collectAsState()
     val toastMessage by viewModel.toastMessage.collectAsState()
 
-    // --- SỰ THAY ĐỔI Ở ĐÂY: Biến nhận thông báo từ màn hình QR Scan truyền ngược về ---
-    var resultMessage by remember { mutableStateOf<String?>(null) }
-
-    // Hiển thị Toast cho các thông báo nội bộ của ViewModel hiện tại
+    // Hiển thị Toast cho các thông báo nội bộ của ViewModel
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -66,12 +63,12 @@ fun ParkingLotDetailPage(
         }
     }
 
-    // --- SỰ THAY ĐỔI Ở ĐÂY: Lắng nghe và hiển thị kết quả từ màn hình QR trả về ---
-    LaunchedEffect(resultMessage) {
-        resultMessage?.let { msg ->
+    // Refresh dữ liệu khi có kết quả quét QR từ màn hình trước truyền về
+    LaunchedEffect(scanResult) {
+        scanResult?.let { msg ->
             Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-            resultMessage = null // Reset để tránh lặp lại thông báo
-            viewModel.refreshLotData() // Làm mới dữ liệu bãi xe sau khi quét thành công
+            viewModel.refreshLotData()
+            onScanResultHandled()
         }
     }
 
@@ -86,82 +83,69 @@ fun ParkingLotDetailPage(
         colors = listOf(PrimaryBlue, PrimaryContainer)
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Chi tiết bãi đỗ", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundGray)
-            )
-        }
-    ) { padding ->
-        Box(
+    // Đã xóa Scaffold và TopAppBar vì MainActivity đã cung cấp AppTopBar
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundGray)
+    ) {
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .background(BackgroundGray)
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(10.dp)) }
+            item { Spacer(modifier = Modifier.height(10.dp)) }
 
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            (lot?.address ?: "").uppercase(),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBlue,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            lot?.name ?: "",
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        )
+                    }
+                    Surface(
+                        color = PrimaryContainer.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                (lot?.address ?: "").uppercase(),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryBlue,
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                lot?.name ?: "",
-                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
-                            )
-                        }
-                        Surface(
-                            color = PrimaryContainer.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(24.dp)
-                        ) {
-                            Text(
-                                lot?.status ?: "",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = PrimaryBlue
-                            )
-                        }
+                        Text(
+                            lot?.status ?: "",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PrimaryBlue
+                        )
                     }
                 }
+            }
 
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    WorkloadGaugeCard(lot!!, modifier = Modifier.weight(1.4f))
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        WorkloadGaugeCard(lot!!, modifier = Modifier.weight(1.4f))
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            ShiftStatsCard(inCount = nextShiftLoad)
-                            StatusGradientCard(primaryGradient)
-                        }
+                        ShiftStatsCard(inCount = nextShiftLoad)
+                        StatusGradientCard(primaryGradient)
                     }
                 }
+            }
 
             item {
                 AdminScanActionsCard(
@@ -170,13 +154,11 @@ fun ParkingLotDetailPage(
                 )
             }
 
-                item { Spacer(modifier = Modifier.height(110.dp)) }
-            }
+            item { Spacer(modifier = Modifier.height(110.dp)) }
         }
     }
 }
 
-// --- Giữ nguyên các Component giao diện bên dưới của bạn ---
 @Composable
 fun AdminScanActionsCard(onScanCheckIn: () -> Unit, onScanCheckOut: () -> Unit) {
     Card(

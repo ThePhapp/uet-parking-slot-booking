@@ -1,13 +1,16 @@
 package com.uet.parking.ui.screens.admin
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,9 +28,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.ParkingLot
+import com.uet.parking.data.model.Ticket
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.*
 import com.uet.parking.ui.viewmodel.AdminViewModel
@@ -51,6 +56,20 @@ fun AdminHomepage(
     val adminProfile by viewModel.adminProfile.collectAsState()
     val totalSlots by viewModel.totalSlots.collectAsState()
     val availableSlots by viewModel.availableSlots.collectAsState()
+    val externalTickets by viewModel.externalTickets.collectAsState()
+    val toastMessage by viewModel.toastMessage.collectAsState()
+    
+    val kpi = adminProfile?.adminInfo?.kpi ?: 0
+
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var showManageDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearToast()
+        }
+    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundGray)) {
         val width = maxWidth
@@ -65,16 +84,18 @@ fun AdminHomepage(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                HeroMainStatsCard(totalSlots, availableSlots)
+                HeroMainStatsCard(totalSlots, availableSlots, kpi)
             }
 
             item(span = { GridItemSpan(maxLineSpan) }) {
                 QuickActionsCard(
                     onManageLotClick = {
-                        adminProfile?.adminInfo?.parkingId?.let { id ->
+                        adminProfile?.adminInfo?.parkingLotId?.let { id ->
                             onNavigateToDetail(id)
                         }
-                    }
+                    },
+                    onExternalBookingClick = { showCreateDialog = true },
+                    onManageExternalClick = { showManageDialog = true }
                 )
             }
 
@@ -94,11 +115,33 @@ fun AdminHomepage(
                 Spacer(modifier = Modifier.height(100.dp))
             }
         }
+
+        if (showCreateDialog) {
+            CreateExternalTicketDialog(
+                onDismiss = { showCreateDialog = false },
+                onConfirm = { endTime ->
+                    viewModel.createExternalTicket(context, endTime)
+                    showCreateDialog = false
+                }
+            )
+        }
+
+        if (showManageDialog) {
+            ManageExternalTicketsDialog(
+                tickets = externalTickets,
+                onDismiss = { showManageDialog = false },
+                onDelete = { ticket -> viewModel.deleteExternalTicket(ticket) }
+            )
+        }
     }
 }
 
 @Composable
-fun QuickActionsCard(onManageLotClick: () -> Unit) {
+fun QuickActionsCard(
+    onManageLotClick: () -> Unit,
+    onExternalBookingClick: () -> Unit,
+    onManageExternalClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -127,7 +170,8 @@ fun QuickActionsCard(onManageLotClick: () -> Unit) {
                 QuickActionButton(
                     icon = Icons.Default.ConfirmationNumber,
                     label = "Đặt vé ngoài",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    onClick = onExternalBookingClick
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -143,10 +187,111 @@ fun QuickActionsCard(onManageLotClick: () -> Unit) {
                 )
                 QuickActionButton(
                     icon = Icons.AutoMirrored.Filled.ListAlt,
-                    label = "Báo cáo",
+                    label = "Quản lý vé ngoài",
                     modifier = Modifier.weight(1f),
-                    isPlaceholder = true
+                    onClick = onManageExternalClick
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun CreateExternalTicketDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    val timeOptions = listOf("09:00", "11:15", "14:30", "17:15")
+    var selectedTime by remember { mutableStateOf(timeOptions.last()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Đặt vé ngoài nhanh", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Text("Chọn thời gian kết thúc gửi xe (mặc định hôm nay):", fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(16.dp))
+                timeOptions.forEach { time ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (selectedTime == time),
+                            onClick = { selectedTime = time }
+                        )
+                        Text(time, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(selectedTime) }) { Text("Xác nhận") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Hủy") }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
+fun ManageExternalTicketsDialog(
+    tickets: List<Ticket>,
+    onDismiss: () -> Unit,
+    onDelete: (Ticket) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Quản lý vé ngoài", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) }
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                
+                if (tickets.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Chưa có vé ngoài nào được đặt", color = Color.Gray)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(items = tickets) { ticket ->
+                            ExternalTicketItem(ticket = ticket, onDelete = { onDelete(ticket) })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExternalTicketItem(ticket: Ticket, onDelete: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = BackgroundGray),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Bắt đầu: ${ticket.startTime?.substringAfter(" ")}", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text("Kết thúc: ${ticket.endTime?.substringAfter(" ")}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null, tint = Color.Red)
             }
         }
     }
@@ -187,7 +332,7 @@ fun QuickActionButton(
 }
 
 @Composable
-fun HeroMainStatsCard(totalSlots: Int, availableSlots: Int) {
+fun HeroMainStatsCard(totalSlots: Int, availableSlots: Int, kpi: Int) {
     Card(
         modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp),
         colors = CardDefaults.cardColors(containerColor = PrimaryContainer),
@@ -201,10 +346,14 @@ fun HeroMainStatsCard(totalSlots: Int, availableSlots: Int) {
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     StatItem("$totalSlots", "TỔNG VỊ TRÍ")
-                    Spacer(modifier = Modifier.width(24.dp))
+                    Spacer(modifier = Modifier.width(20.dp))
                     Box(modifier = Modifier.width(1.dp).height(30.dp).background(Color.White.copy(0.2f)))
-                    Spacer(modifier = Modifier.width(32.dp))
+                    Spacer(modifier = Modifier.width(20.dp))
                     StatItem("$availableSlots", "CÒN TRỐNG")
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Box(modifier = Modifier.width(1.dp).height(30.dp).background(Color.White.copy(0.2f)))
+                    Spacer(modifier = Modifier.width(20.dp))
+                    StatItem("$kpi", "KPI CÁ NHÂN")
                 }
             }
         }

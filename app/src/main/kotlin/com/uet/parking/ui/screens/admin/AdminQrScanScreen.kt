@@ -2,7 +2,6 @@ package com.uet.parking.ui.screens.admin
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
@@ -60,7 +59,6 @@ fun AdminQrScanScreen(
     // Chặn luồng phản hồi: Chỉ phản hồi quay lại khi ViewModel đã trả về thông điệp xử lý xong
     LaunchedEffect(toastMessage) {
         toastMessage?.let { msg ->
-            Log.d("QR_SCAN_DEBUG", "🏁 Firebase xử lý xong -> Kết quả: $msg")
             viewModel.clearToast()
             onBackWithMessage(msg) // Truyền ngược thông điệp về màn hình trước và đóng camera
         }
@@ -104,7 +102,6 @@ fun AdminQrScanScreen(
             if (hasCameraPermission) {
                 QrScannerView(
                     onCodeScanned = { code ->
-                        android.util.Log.d("QR_SCAN_DEBUG", "👉 Camera phát hiện CODE: $code")
                         if (mode == "checkin") {
                             viewModel.processCheckIn(context, code)
                         } else {
