@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.flow.firstOrNull
 
 class ParkingRepository(
     private val firestore: FirebaseFirestore
@@ -30,14 +29,11 @@ class ParkingRepository(
     }
 
     suspend fun getUserByIdSuspend(userId: String): User? {
-        // Bảo vệ hàm khỏi crash nếu truyền string rỗng
         if (userId.isBlank()) return null
-
         return try {
-            val document = firestore.collection("users").document(userId).get().await()
+            val document = usersCollection.document(userId).get().await()
             document.toObject(User::class.java)
         } catch (e: Exception) {
-            e.printStackTrace()
             null
         }
     }
@@ -71,7 +67,6 @@ class ParkingRepository(
     }
 
     suspend fun updateDebt(userId: String, newDebt: Double) {
-        // Sử dụng set với merge để đảm bảo document được tạo nếu chưa tồn tại
         val data = mapOf("debt" to newDebt, "userId" to userId)
         userInfoCollection.document(userId).set(data, SetOptions.merge()).await()
     }
@@ -191,6 +186,12 @@ class ParkingRepository(
             mapOf("vehicleCount" to FieldValue.increment(1)),
             SetOptions.merge()
         ).await()
+    }
+
+    suspend fun decrementVehicleCount(parkingId: String, date: String, shift: Int) {
+        val safeDate = date.replace("/", "-")
+        val docId = "${parkingId}_${safeDate}_${shift}"
+        hourlyLoadsCollection.document(docId).update("vehicleCount", FieldValue.increment(-1)).await()
     }
 
     suspend fun getShiftFlowLoad(parkingId: String, timeString: String): Pair<Int, Int> {
