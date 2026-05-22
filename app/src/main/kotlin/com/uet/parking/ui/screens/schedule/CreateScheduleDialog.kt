@@ -62,7 +62,7 @@ fun CreateScheduleDialog(
                     onValueChange = { shiftText = it },
                     label = { Text("Ca học: 1, 2, 3, 4") },
                     supportingText = {
-                        Text("Ca 1: 7h-9h40 | Ca 2: 9h50-12h30 | Ca 3: 13h30-16h20 | Ca 4: 16h30-19h")
+                        Text("Ca 1: 7h-9h40 | Ca 2: 9h50-12h30 | Ca 3: 13h30-16h10 | Ca 4: 16h20-19h")
                     },
                     modifier = Modifier.fillMaxWidth()
                 )

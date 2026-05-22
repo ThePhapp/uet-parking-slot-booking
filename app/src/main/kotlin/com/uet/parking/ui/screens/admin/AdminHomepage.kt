@@ -203,10 +203,10 @@ fun QuickActionsCard(
 fun CreateExternalTicketDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     val currentTimeStr = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
     val allOptions = listOf(
-        "09:00" to "Ca 1",
-        "11:15" to "Ca 2",
-        "14:30" to "Ca 3",
-        "17:15" to "Ca 4"
+        "07:00" to "Ca 1",
+        "09:50" to "Ca 2",
+        "13:30" to "Ca 3",
+        "16:20" to "Ca 4"
     )
 
     val availableOptions = allOptions.filter { it.first > currentTimeStr }

@@ -149,31 +149,35 @@ fun TicketItem(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocalParking, null, modifier = Modifier.size(18.dp), tint = PrimaryBlue)
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Mã vé: PKG-${ticket.ticketId ?: "N/A"}-UET",
+                            text = parkingLot?.name ?: "Đang tải...",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = PrimaryBlue
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = onCopyCode,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.ContentCopy, 
-                                contentDescription = "Copy", 
-                                tint = Color.Gray,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Ngày: ${ticket.startTime?.substringBefore(" ") ?: "---"}",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = parkingLot?.address ?: "---",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.ConfirmationNumber, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${ticket.startTime?.substringBefore(" ") ?: "---"} | ${ticket.startTime?.substringAfter(" ") ?: "---"} - ${ticket.endTime?.substringAfter(" ") ?: "---"}",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
                 }
                 
                 TicketStatusBadge(ticket.status)
@@ -198,14 +202,31 @@ fun TicketItem(
                     HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    DetailRow(Icons.Default.LocalParking, "Bãi xe", parkingLot?.name ?: "Đang tải...")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(Icons.Default.LocationOn, "Địa chỉ", parkingLot?.address ?: "---")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(Icons.Default.ConfirmationNumber, "Khung giờ", "${ticket.startTime?.substringAfter(" ") ?: "---"} - ${ticket.endTime?.substringAfter(" ") ?: "---"}")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Mã vé: PKG-${ticket.ticketId ?: "N/A"}-UET",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = PrimaryBlue
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = onCopyCode,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ContentCopy, 
+                                contentDescription = "Copy", 
+                                tint = Color.Gray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Column(
