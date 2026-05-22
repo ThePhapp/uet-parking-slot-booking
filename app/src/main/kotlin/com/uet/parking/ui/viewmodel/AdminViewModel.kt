@@ -80,7 +80,7 @@ class AdminViewModel(
                     else -> 4
                 }
 
-                // 1. Ràng buộc sức chứa (90%)
+                // 1. Kiểm tra sức chứa (90%)
                 val capacity = lot.capacity ?: 0
                 val currentLoad = repository.getLoad(lotId, todayStr, shift)
                 val vehicleCount = currentLoad?.vehicleCount ?: 0

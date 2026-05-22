@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// --- Bảng màu hệ thống ---
 val PrimaryBlue = Color(0xFF003D9B)
 val PrimaryContainer = Color(0xFF0052CC)
 val BackgroundGray = Color(0xFFF7F9FB)
