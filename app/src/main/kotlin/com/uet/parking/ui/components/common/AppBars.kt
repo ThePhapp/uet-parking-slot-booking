@@ -76,7 +76,8 @@ fun AppTopBar(
 fun AppBottomNavigationBar(
     selectedIndex: Int = 0,
     onItemSelected: (Int) -> Unit,
-    isAdmin: Boolean = false
+    isAdmin: Boolean = false,
+    enabled: Boolean = true
 ) {
     Surface(
         modifier = Modifier
@@ -95,14 +96,16 @@ fun AppBottomNavigationBar(
             NavBarItem(
                 icon = Icons.Default.Home,
                 label = "HOME",
-                isSelected = selectedIndex == 0
+                isSelected = selectedIndex == 0,
+                enabled = enabled
             ) { onItemSelected(0) }
 
             // Trường Booking chung cho cả 2
             NavBarItem(
                 icon = Icons.Default.LocalParking,
                 label = "BOOKING",
-                isSelected = selectedIndex == 1
+                isSelected = selectedIndex == 1,
+                enabled = enabled
             ) { onItemSelected(1) }
             
             if (!isAdmin) {
@@ -110,7 +113,8 @@ fun AppBottomNavigationBar(
                 NavBarItem(
                     icon = Icons.Default.ConfirmationNumber,
                     label = "TICKETS",
-                    isSelected = selectedIndex == 2
+                    isSelected = selectedIndex == 2,
+                    enabled = enabled
                 ) { onItemSelected(2) }
             }
             
@@ -118,7 +122,8 @@ fun AppBottomNavigationBar(
             NavBarItem(
                 icon = Icons.Default.Settings,
                 label = "SETTINGS",
-                isSelected = isAdmin && selectedIndex == 2 || !isAdmin && selectedIndex == 3
+                isSelected = isAdmin && selectedIndex == 2 || !isAdmin && selectedIndex == 3,
+                enabled = enabled
             ) { onItemSelected(if (isAdmin) 2 else 3) }
         }
     }
@@ -129,12 +134,13 @@ private fun NavBarItem(
     icon: ImageVector,
     label: String,
     isSelected: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() }
+            .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -142,14 +148,14 @@ private fun NavBarItem(
             Icon(
                 icon,
                 contentDescription = label,
-                tint = if (isSelected) PrimaryBlue else Color.LightGray,
+                tint = if (isSelected) PrimaryBlue else if (!enabled) Color.LightGray.copy(alpha = 0.5f) else Color.LightGray,
                 modifier = Modifier.size(24.dp)
             )
             Text(
                 label,
                 fontSize = 10.sp,
                 fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                color = if (isSelected) PrimaryBlue else Color.LightGray
+                color = if (isSelected) PrimaryBlue else if (!enabled) Color.LightGray.copy(alpha = 0.5f) else Color.LightGray
             )
         }
     }

@@ -159,8 +159,8 @@ private fun WeeklyCalendarGrid(
     val shifts = listOf(
         Triple(1, "Ca 1", "7h - 9h40"),
         Triple(2, "Ca 2", "9h50 - 12h30"),
-        Triple(3, "Ca 3", "13h30 - 16h20"),
-        Triple(4, "Ca 4", "16h30 - 19h")
+        Triple(3, "Ca 3", "13h30 - 16h10"),
+        Triple(4, "Ca 4", "16h20 - 19h")
     )
 
     Card(

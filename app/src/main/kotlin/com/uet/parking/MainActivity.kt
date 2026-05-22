@@ -194,6 +194,7 @@ fun MainNavigation(activityContext: android.content.Context) {
             if ((isUser || isAdmin) && currentRoute?.startsWith("admin_qr_scan") != true) {
                 AppBottomNavigationBar(
                     isAdmin = isAdmin,
+                    enabled = currentRoute != Screen.SEARCHING.route,
                     selectedIndex = when (currentRoute) {
                         Screen.HOME.route, Screen.ADMIN_HOME.route -> 0
                         Screen.BOOKING.route, Screen.ADMIN_BOOKING.route -> 1

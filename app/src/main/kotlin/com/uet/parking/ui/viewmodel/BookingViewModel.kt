@@ -18,9 +18,29 @@ data class BookingUiState(
     val successMessage: String = "",
     val selectedParkingLot: ParkingLot? = null,
     val selectedDate: String = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()),
-    val selectedStartTime: String = "07:00",
-    val selectedEndTime: String = "09:00"
-)
+    val selectedStartTime: String = getClosestShift().first,
+    val selectedEndTime: String = getClosestShift().second
+) {
+    companion object {
+        fun getClosestShift(): Pair<String, String> {
+            val now = Calendar.getInstance()
+            val currentTimeInMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+            
+            val shifts = listOf(
+                Pair("07:00", "09:40"),
+                Pair("09:50", "12:30"),
+                Pair("13:30", "16:10"),
+                Pair("16:20", "19:00")
+            )
+            
+            return shifts.minByOrNull { shift ->
+                val parts = shift.first.split(":")
+                val shiftTimeInMinutes = parts[0].toInt() * 60 + parts[1].toInt()
+                Math.abs(shiftTimeInMinutes - currentTimeInMinutes)
+            } ?: shifts[0]
+        }
+    }
+}
 
 class BookingViewModel(
     private val repository: ParkingRepository,
@@ -33,18 +53,18 @@ class BookingViewModel(
     val startTimeSlots = flowOf(
         listOf(
             "Ca 1 — 07:00" to "07:00",
-            "Ca 2 — 09:15" to "09:15",
-            "Ca 3 — 12:30" to "12:30",
-            "Ca 4 — 15:15" to "15:15"
+            "Ca 2 — 09:50" to "09:50",
+            "Ca 3 — 13:30" to "13:30",
+            "Ca 4 — 16:20" to "16:20"
         )
     ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val endTimeSlots = flowOf(
         listOf(
-            "Ca 1 — 09:00" to "09:00",
-            "Ca 2 — 11:15" to "11:15",
-            "Ca 3 — 14:30" to "14:30",
-            "Ca 4 — 17:15" to "17:15"
+            "Ca 1 — 09:40" to "09:40",
+            "Ca 2 — 12:30" to "12:30",
+            "Ca 3 — 16:10" to "16:10",
+            "Ca 4 — 19:00" to "19:00"
         )
     ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
