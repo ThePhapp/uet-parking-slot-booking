@@ -288,7 +288,7 @@ fun ManageExternalTicketsDialog(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(items = tickets) { ticket ->
+                        items(tickets) { ticket ->
                             ExternalTicketItem(ticket = ticket, onDelete = { onDelete(ticket) })
                         }
                     }

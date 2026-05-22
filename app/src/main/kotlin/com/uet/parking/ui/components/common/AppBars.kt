@@ -1,37 +1,38 @@
 package com.uet.parking.ui.components.common
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocalParking
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uet.parking.R
 import com.uet.parking.ui.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppTopBar(
     title: String,
-    showBack: Boolean = false,
-    onBackClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
-    actions: @Composable RowScope.() -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {},
     containerColor: Color = Color.White.copy(alpha = 0.9f)
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     TopAppBar(
         title = {
             Text(
@@ -39,35 +40,54 @@ fun AppTopBar(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
                     color = PrimaryBlue
-                )
+                ),
+                modifier = Modifier.padding(start = 8.dp)
             )
         },
         navigationIcon = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier
-                        .padding(start = 12.dp)
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .clickable { onHomeClick() },
-                    color = PrimaryBlue,
-                    shape = CircleShape
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("P", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
+            Image(
+                painter = painterResource(id = R.drawable.app_logo),
+                contentDescription = "App Logo",
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .clickable { onHomeClick() }
+            )
+        },
+        actions = {
+            Box(Modifier.padding(end = 8.dp)) {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = "User Avatar",
+                        tint = PrimaryBlue,
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
-                
-                if (showBack) {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryBlue)
-                    }
-                } else {
-                    Spacer(modifier = Modifier.width(8.dp))
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Cài đặt") },
+                        onClick = {
+                            expanded = false
+                            onSettingsClick()
+                        },
+                        leadingIcon = { Icon(Icons.Default.Settings, null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Đăng xuất") },
+                        onClick = {
+                            expanded = false
+                            onLogoutClick()
+                        },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, null) }
+                    )
                 }
             }
         },
-        actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(containerColor = containerColor)
     )
 }

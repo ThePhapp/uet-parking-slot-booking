@@ -1,10 +1,10 @@
+@file:Suppress("DEPRECATION")
 package com.uet.parking
 
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -12,26 +12,21 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.saveable.rememberSaveable
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
@@ -40,24 +35,24 @@ import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.components.common.AppBottomNavigationBar
 import com.uet.parking.ui.components.common.AppTopBar
+import com.uet.parking.ui.navigation.Screen
 import com.uet.parking.ui.screens.admin.AdminHomepage
-import com.uet.parking.ui.screens.admin.ParkingLotDetailPage
 import com.uet.parking.ui.screens.admin.AdminQrScanScreen
+import com.uet.parking.ui.screens.admin.ParkingLotDetailPage
 import com.uet.parking.ui.screens.auth.AuthScreen
-import com.uet.parking.ui.screens.home.HomeScreen
-import com.uet.parking.ui.screens.settings.SettingsScreen
-import com.uet.parking.ui.screens.settings.EditProfileScreen
 import com.uet.parking.ui.screens.booking.BookingFormScreen
 import com.uet.parking.ui.screens.booking.SearchingScreen
 import com.uet.parking.ui.screens.booking.SuccessScreen
 import com.uet.parking.ui.screens.booking.TicketScreen
+import com.uet.parking.ui.screens.home.HomeScreen
+import com.uet.parking.ui.screens.payment.PaymentScreen
+import com.uet.parking.ui.screens.schedule.StudyScheduleScreen
+import com.uet.parking.ui.screens.settings.EditProfileScreen
+import com.uet.parking.ui.screens.settings.SettingsScreen
 import com.uet.parking.ui.theme.ParkingTheme
 import com.uet.parking.ui.viewmodel.*
-import com.uet.parking.ui.screens.payment.PaymentScreen
-import com.uet.parking.ui.navigation.Screen
-import com.uet.parking.ui.screens.schedule.StudyScheduleScreen
 
-@androidx.compose.material3.ExperimentalMaterial3Api
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,9 +65,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@androidx.compose.material3.ExperimentalMaterial3Api
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainNavigation(activityContext: android.content.Context) {
+fun MainNavigation(activityContext: ComponentActivity) {
     val context = LocalContext.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -87,7 +82,7 @@ fun MainNavigation(activityContext: android.content.Context) {
     val handleLogout = {
         FirebaseAuth.getInstance().signOut()
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(com.uet.parking.R.string.default_web_client_id))
+            .requestIdToken(context.getString(R.string.default_web_client_id))
             .build()
         GoogleSignIn.getClient(context, gso).signOut()
         
@@ -100,7 +95,7 @@ fun MainNavigation(activityContext: android.content.Context) {
 
     LaunchedEffect(currentRoute) {
         if (currentRoute == Screen.AUTH.route) {
-            // Handled
+            // Logic Logout đã xử lý xóa session
         }
         else if (currentRoute?.startsWith("admin") == true) {
             if (userRole == null) userRole = UserRole.ADMIN
@@ -113,18 +108,18 @@ fun MainNavigation(activityContext: android.content.Context) {
     val isAdmin = userRole == UserRole.ADMIN || userRole == UserRole.GUARD
     val isUser = userRole == UserRole.USER
 
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         var hasNotificationPermission by remember {
             mutableStateOf(
-                androidx.core.content.ContextCompat.checkSelfPermission(
+                ContextCompat.checkSelfPermission(
                     context,
-                    android.Manifest.permission.POST_NOTIFICATIONS
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
             )
         }
 
-        val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-            contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        val permissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
             onResult = { isGranted ->
                 hasNotificationPermission = isGranted
             }
@@ -132,17 +127,17 @@ fun MainNavigation(activityContext: android.content.Context) {
 
         LaunchedEffect(Unit) {
             if (!hasNotificationPermission) {
-                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
 
-    val ticketIdFromIntent = (activityContext as? android.app.Activity)?.intent?.getStringExtra("ticketId")
+    val ticketIdFromIntent = activityContext.intent?.getStringExtra("ticketId")
     
     LaunchedEffect(currentUserId, userRole, ticketIdFromIntent) {
         if (currentUserId != null && ticketIdFromIntent != null) {
             navController.navigate(Screen.TICKETS.route)
-            (activityContext as? android.app.Activity)?.intent?.removeExtra("ticketId")
+            activityContext.intent?.removeExtra("ticketId")
         }
     }
 
@@ -165,28 +160,17 @@ fun MainNavigation(activityContext: android.content.Context) {
                         currentRoute == Screen.STUDY_SCHEDULE.route -> "Lịch học"
                         else -> "Campus Parking"
                     },
-                    showBack = currentRoute?.startsWith("admin_detail") == true ||
-                            currentRoute in listOf(
-                                Screen.TICKETS.route,
-                                Screen.BOOKING.route,
-                                Screen.SEARCHING.route,
-                                Screen.SUCCESS.route,
-                                Screen.PAYMENT.route,
-                                Screen.EDIT_PROFILE.route,
-                                Screen.STUDY_SCHEDULE.route
-                            ),
-                    onBackClick = { navController.popBackStack() },
                     onHomeClick = {
                         val homeRoute = if (isAdmin) Screen.ADMIN_HOME.route else Screen.HOME.route
                         navController.navigate(homeRoute) {
                             popUpTo(homeRoute) { inclusive = true }
                         }
                     },
-                    actions = {
-                        IconButton(onClick = { /* Refresh logic */ }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.Gray)
-                        }
-                    }
+                    onSettingsClick = {
+                        val settingsRoute = if (isAdmin) Screen.ADMIN_SETTINGS.route else Screen.SETTINGS.route
+                        navController.navigate(settingsRoute)
+                    },
+                    onLogoutClick = handleLogout
                 )
             }
         },
@@ -363,7 +347,6 @@ fun MainNavigation(activityContext: android.content.Context) {
                     adminId = currentUserId ?: "",
                     scanResult = scanResultState.value,
                     onScanResultHandled = {
-                        // Xóa message sau khi DetailPage đã refresh xong
                         backStackEntry.savedStateHandle.remove<String>("scan_result")
                     },
                     onBack = { navController.popBackStack() },
@@ -405,6 +388,6 @@ fun MainNavigation(activityContext: android.content.Context) {
 @Composable
 fun PlaceholderScreen(text: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+        Text(text, fontSize = 16.sp, color = Color.Gray)
     }
 }
