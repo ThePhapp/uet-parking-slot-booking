@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -37,6 +38,8 @@ import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.*
 import com.uet.parking.ui.viewmodel.AdminViewModel
 import com.uet.parking.ui.viewmodel.ViewModelFactory
+import java.text.SimpleDateFormat
+import java.util.*
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -198,32 +201,53 @@ fun QuickActionsCard(
 
 @Composable
 fun CreateExternalTicketDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    val timeOptions = listOf("09:00", "11:15", "14:30", "17:15")
-    var selectedTime by remember { mutableStateOf(timeOptions.last()) }
+    val currentTimeStr = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
+    val allOptions = listOf(
+        "09:00" to "Ca 1",
+        "11:15" to "Ca 2",
+        "14:30" to "Ca 3",
+        "17:15" to "Ca 4"
+    )
+
+    val availableOptions = allOptions.filter { it.first > currentTimeStr }
+    var selectedTime by remember { mutableStateOf(availableOptions.firstOrNull()?.first ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Đặt vé ngoài nhanh", fontWeight = FontWeight.Bold) },
         text = {
             Column {
-                Text("Chọn thời gian kết thúc gửi xe (mặc định hôm nay):", fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(16.dp))
-                timeOptions.forEach { time ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (selectedTime == time),
-                            onClick = { selectedTime = time }
-                        )
-                        Text(time, modifier = Modifier.padding(start = 8.dp))
+                if (availableOptions.isEmpty()) {
+                    Text("Đã hết ca gửi xe trong ngày hôm nay.", fontSize = 14.sp, color = MaterialTheme.colorScheme.error)
+                } else {
+                    Text("Chọn ca kết thúc gửi xe:", fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    availableOptions.forEach { (time, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedTime = time }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = (selectedTime == time),
+                                onClick = { selectedTime = time }
+                            )
+                            Text(
+                                text = "$label (Kết thúc lúc $time)",
+                                modifier = Modifier.padding(start = 8.dp),
+                                fontSize = 15.sp
+                            )
+                        }
                     }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(selectedTime) }) { Text("Xác nhận") }
+            if (availableOptions.isNotEmpty()) {
+                Button(onClick = { onConfirm(selectedTime) }) { Text("Xác nhận") }
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Hủy") }
