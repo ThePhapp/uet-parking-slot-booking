@@ -119,9 +119,12 @@ fun SuccessScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoCard("📅 Ngày", date, Modifier.weight(1f))
-                InfoCard("⏰ Giờ", "$startTime – $endTime", Modifier.weight(1f))
+            Row(
+                modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InfoCard("📅 Ngày", date, Modifier.weight(1f).fillMaxHeight())
+                InfoCard("⏰ Giờ", "$startTime - $endTime", Modifier.weight(1f).fillMaxHeight())
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -187,7 +190,14 @@ fun TicketQrCard(ticketCode: String) {
         Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Mã vé của bạn", fontSize = 12.sp, color = Color.Gray)
             Spacer(Modifier.height(8.dp))
-            Text(ticketCode, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue, letterSpacing = 2.sp)
+            Text(
+                text = ticketCode,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBlue,
+                maxLines = 1,
+                softWrap = false
+            )
             Spacer(Modifier.height(16.dp))
             
             if (qrBitmap != null) {
@@ -235,10 +245,21 @@ fun TicketStatusBadge(status: TicketStatus) {
 @Composable
 private fun InfoCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(modifier = modifier, shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
-        Column(modifier = Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.padding(14.dp).fillMaxWidth(), 
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(label, fontSize = 12.sp, color = Color.Gray)
             Spacer(Modifier.height(4.dp))
-            Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF11131F))
+            Text(
+                text = value, 
+                fontSize = 13.sp, 
+                fontWeight = FontWeight.SemiBold, 
+                color = Color(0xFF11131F),
+                maxLines = 1,
+                softWrap = false
+            )
         }
     }
 }
