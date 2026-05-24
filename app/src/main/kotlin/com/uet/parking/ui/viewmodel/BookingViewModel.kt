@@ -18,11 +18,11 @@ data class BookingUiState(
     val successMessage: String = "",
     val selectedParkingLot: ParkingLot? = null,
     val selectedDate: String = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()),
-    val selectedStartTime: String = getClosestShift().first,
-    val selectedEndTime: String = getClosestShift().second
+    val selectedStartTime: String = getClosestShift(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())).first,
+    val selectedEndTime: String = getClosestShift(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())).second
 ) {
     companion object {
-        fun getClosestShift(): Pair<String, String> {
+        fun getClosestShift(dateString: String? = null): Pair<String, String> {
             val now = Calendar.getInstance()
             val currentTimeInMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
             
@@ -32,6 +32,26 @@ data class BookingUiState(
                 Pair("13:30", "16:10"),
                 Pair("16:20", "19:00")
             )
+            
+            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val todayStr = sdf.format(Date())
+            val isToday = dateString == null || dateString == todayStr
+
+            if (isToday) {
+                val availableShifts = shifts.filter { shift ->
+                    val parts = shift.first.split(":")
+                    val shiftTimeInMinutes = parts[0].toInt() * 60 + parts[1].toInt()
+                    (shiftTimeInMinutes - currentTimeInMinutes) >= 60
+                }
+                if (availableShifts.isEmpty()) {
+                    return Pair("", "")
+                }
+                return availableShifts.minByOrNull { shift ->
+                    val parts = shift.first.split(":")
+                    val shiftTimeInMinutes = parts[0].toInt() * 60 + parts[1].toInt()
+                    Math.abs(shiftTimeInMinutes - currentTimeInMinutes)
+                } ?: availableShifts[0]
+            }
             
             return shifts.minByOrNull { shift ->
                 val parts = shift.first.split(":")
@@ -77,7 +97,15 @@ class BookingViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun selectDate(date: String) {
-        _bookingUiState.update { it.copy(selectedDate = date, errorMessage = "") }
+        val closest = BookingUiState.getClosestShift(date)
+        _bookingUiState.update { 
+            it.copy(
+                selectedDate = date, 
+                selectedStartTime = closest.first,
+                selectedEndTime = closest.second,
+                errorMessage = ""
+            ) 
+        }
     }
 
     fun selectStartTime(time: String) {
@@ -92,6 +120,11 @@ class BookingViewModel(
         val currentState = _bookingUiState.value
         val fullSdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         
+        if (currentState.selectedStartTime.isEmpty() || currentState.selectedEndTime.isEmpty()) {
+            _bookingUiState.update { it.copy(errorMessage = "Vui lòng chọn giờ bắt đầu và giờ kết thúc") }
+            return
+        }
+
         val newStartStr = "${currentState.selectedDate} ${currentState.selectedStartTime}"
         val newEndStr = "${currentState.selectedDate} ${currentState.selectedEndTime}"
 
