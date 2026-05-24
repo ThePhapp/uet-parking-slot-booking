@@ -1,7 +1,11 @@
 package com.uet.parking.ui.screens.auth
 
 import android.annotation.SuppressLint
-
+import android.content.Context
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,49 +23,42 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import com.uet.parking.data.model.User
+import com.uet.parking.data.model.UserInfo
 import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.*
 import kotlinx.coroutines.launch
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.FirebaseAuth
-import com.uet.parking.data.model.User
-import com.uet.parking.data.model.UserInfo
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.tasks.await
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.firebase.auth.FirebaseUser
-import android.widget.Toast
 
-@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun LoginScreen(
     repository: ParkingRepository,
-    onLoginSuccess: (String, UserRole) -> Unit,
-    onNavigateToRegister: () -> Unit
+    onLoginSuccess: (String, UserRole) -> Unit
 ) {
-    var loginType by remember { mutableStateOf<LoginMethod?>(null) } // null = selection, VNU, GUARD
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val sharedPrefs = remember { context.getSharedPreferences("parking_prefs", Context.MODE_PRIVATE) }
+    
+    var loginType by remember { mutableStateOf<LoginMethod?>(null) }
+    var email by remember { mutableStateOf(sharedPrefs.getString("saved_email", "") ?: "") }
+    var password by remember { mutableStateOf(sharedPrefs.getString("saved_password", "") ?: "") }
+    var rememberMe by remember { mutableStateOf(sharedPrefs.getBoolean("remember_me", false)) }
     var errorText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val auth = remember { FirebaseAuth.getInstance() }
 
@@ -101,6 +99,15 @@ fun LoginScreen(
                     
                     if (firebaseUser != null) {
                         Log.d("Auth", "Firebase auth success: ${firebaseUser.uid}")
+                        sharedPrefs.edit().apply {
+                            putBoolean("remember_me", rememberMe)
+                            if (rememberMe) {
+                                putString("saved_google_email", gEmail)
+                            } else {
+                                remove("saved_google_email")
+                            }
+                        }.apply()
+
                         val existingUser = repository.getUserByEmail(gEmail)
                         if (existingUser == null) {
                             Log.d("Auth", "Creating new user in Firestore")
@@ -188,58 +195,97 @@ fun LoginScreen(
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = if (loginType == null) "Chào mừng trở lại" else "Đăng nhập",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue
-                    )
-                    Text(
-                        text = if (loginType == null) "Sử dụng tài khoản nội bộ để tiếp tục" 
-                               else "Nhập thông tin để tiếp tục",
-                        fontSize = 14.sp,
-                        color = OnSecondaryContainer,
-                        modifier = Modifier.padding(top = 8.dp),
-                        textAlign = TextAlign.Center
-                    )
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
-
                     if (loginType == null) {
-                        // Selection Mode
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            LoginActionButton(
-                                text = "Đăng nhập với mail VNU",
-                                icon = Icons.Default.Mail,
-                                containerColor = PrimaryBlue,
-                                contentColor = OnPrimary,
-                                onClick = {
-                                    try {
-                                        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                            .requestIdToken(context.getString(com.uet.parking.R.string.default_web_client_id))
-                                            .requestEmail()
-                                            .build()
-                                        val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                                        googleSignInClient.signOut().addOnCompleteListener {
-                                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                                            isLoading = true
-                                        }
-                                    } catch (e: Exception) {
-                                        errorText = "Lỗi khởi tạo Google: ${e.message}"
-                                    }
-                                }
-                            )
+                        Text(
+                            text = "Chào mừng bạn",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBlue
+                        )
+                        Text(
+                            text = "Vui lòng chọn phương thức đăng nhập",
+                            fontSize = 14.sp,
+                            color = OnSecondaryContainer,
+                            modifier = Modifier.padding(top = 8.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        Spacer(modifier = Modifier.height(40.dp))
 
-                            LoginActionButton(
-                                text = "Đăng nhập với tài khoản",
-                                icon = Icons.Default.Person,
-                                containerColor = SurfaceContainerLow,
-                                contentColor = PrimaryBlue,
-                                border = BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.1f)),
-                                onClick = { loginType = LoginMethod.VNU }
+                        LoginActionButton(
+                            text = "Đăng nhập bằng mail VNU",
+                            painter = androidx.compose.ui.res.painterResource(id = com.uet.parking.R.drawable.vnu_logo),
+                            containerColor = PrimaryBlue,
+                            contentColor = Color.White,
+                            onClick = {
+                                try {
+                                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                        .requestIdToken(context.getString(com.uet.parking.R.string.default_web_client_id))
+                                        .requestEmail()
+                                        .build()
+                                    val googleSignInClient = GoogleSignIn.getClient(context, gso)
+                                    googleSignInClient.signOut().addOnCompleteListener {
+                                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                        isLoading = true
+                                    }
+                                } catch (e: Exception) {
+                                    errorText = "Lỗi khởi tạo Google: ${e.message}"
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        LoginActionButton(
+                            text = "Đăng nhập bằng tài khoản",
+                            painter = androidx.compose.ui.res.painterResource(id = com.uet.parking.R.drawable.vnu_logo),
+                            containerColor = PrimaryBlue,
+                            contentColor = Color.White,
+                            onClick = { 
+                                loginType = LoginMethod.ACCOUNT 
+                                errorText = ""
+                            }
+                        )
+
+                        if (errorText.isNotEmpty()) {
+                            Text(
+                                text = errorText,
+                                color = Error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(top = 16.dp).align(Alignment.Start),
+                                textAlign = TextAlign.Start
                             )
                         }
                     } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = { 
+                                loginType = null
+                                errorText = ""
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryBlue)
+                            }
+                            Text(
+                                text = "Đăng nhập",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryBlue,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                        
+                        Text(
+                            text = "Nhập thông tin để tiếp tục",
+                            fontSize = 14.sp,
+                            color = OnSecondaryContainer,
+                            modifier = Modifier.padding(top = 8.dp).align(Alignment.Start),
+                            textAlign = TextAlign.Start
+                        )
+                        
+                        Spacer(modifier = Modifier.height(32.dp))
+
                         // Form Mode
                         AuthTextField(
                             value = email,
@@ -260,7 +306,39 @@ fun LoginScreen(
                             isPass = true
                         )
                         
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = rememberMe,
+                                onCheckedChange = { rememberMe = it },
+                                colors = CheckboxDefaults.colors(checkedColor = PrimaryBlue)
+                            )
+                            Text(
+                                "Ghi nhớ đăng nhập",
+                                fontSize = 14.sp,
+                                color = OnSecondaryContainer,
+                                modifier = Modifier.clickable { rememberMe = !rememberMe }
+                            )
+                        }
+
+                        // Move "Quên mật khẩu" before Login Button
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                            Text(
+                                text = "Quên mật khẩu?",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PrimaryBlue,
+                                modifier = Modifier.clickable { 
+                                    Toast.makeText(context, "Vui lòng liên hệ phòng đào tạo để lấy lại mật khẩu", Toast.LENGTH_LONG).show()
+                                }
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
                         
                         Button(
                             onClick = {
@@ -270,16 +348,23 @@ fun LoginScreen(
                                     return@Button
                                 }
                                 
-                                if (loginType == LoginMethod.VNU && !trimmedEmail.endsWith("@vnu.edu.vn", ignoreCase = true)) {
-                                    errorText = "Vui lòng sử dụng mail @vnu.edu.vn"
-                                    return@Button
-                                }
-
                                 scope.launch {
                                     isLoading = true
                                     try {
                                         val user = repository.getUserByEmail(trimmedEmail)
                                         if (user != null && user.password == password) {
+                                            // Lưu trạng thái ghi nhớ đăng nhập và thông tin tài khoản
+                                            sharedPrefs.edit().apply {
+                                                putBoolean("remember_me", rememberMe)
+                                                if (rememberMe) {
+                                                    putString("saved_email", trimmedEmail)
+                                                    putString("saved_password", password)
+                                                } else {
+                                                    remove("saved_email")
+                                                    remove("saved_password")
+                                                }
+                                            }.apply()
+                                            
                                             Toast.makeText(context, "Đăng nhập thành công", Toast.LENGTH_SHORT).show()
                                             onLoginSuccess(user.userId ?: "", user.role)
                                         } else {
@@ -299,49 +384,21 @@ fun LoginScreen(
                             Text("Đăng nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
 
-                        TextButton(
-                            onClick = { 
-                                loginType = null
-                                errorText = ""
-                                email = ""
-                                password = ""
-                            },
-                            modifier = Modifier.padding(top = 8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Quay lại phương thức đăng nhập", color = OnSecondaryContainer)
-                            }
+                        if (errorText.isNotEmpty()) {
+                            Text(
+                                text = errorText,
+                                color = Error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(top = 16.dp).align(Alignment.Start),
+                                textAlign = TextAlign.Start
+                            )
                         }
-                    }
-
-                    if (errorText.isNotEmpty()) {
-                        Text(
-                            text = errorText,
-                            color = com.uet.parking.ui.theme.Error,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 16.dp).align(Alignment.Start),
-                            textAlign = TextAlign.Start
-                        )
                     }
 
                     if (isLoading) {
                         Spacer(modifier = Modifier.height(16.dp))
                         CircularProgressIndicator(color = PrimaryBlue, modifier = Modifier.size(24.dp))
                     }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    Text(
-                        text = "Quên mật khẩu?",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = PrimaryBlue,
-                        modifier = Modifier.clickable { 
-                            Toast.makeText(context, "Vui lòng liên hệ phòng đào tạo để lấy lại mật khẩu", Toast.LENGTH_LONG).show()
-                        }
-                    )
                 }
             }
 
@@ -372,12 +429,12 @@ fun LoginScreen(
     }
 }
 
-enum class LoginMethod { VNU, GUARD }
+enum class LoginMethod { ACCOUNT }
 
 @Composable
 fun LoginActionButton(
     text: String,
-    icon: ImageVector,
+    painter: androidx.compose.ui.graphics.painter.Painter,
     containerColor: Color,
     contentColor: Color,
     border: BorderStroke? = null,
@@ -385,17 +442,35 @@ fun LoginActionButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+        modifier = Modifier.fillMaxWidth().height(60.dp), // Tăng chiều cao nút một chút để logo to hơn
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor
         ),
         border = border,
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+        androidx.compose.foundation.Image(
+            painter = painter, 
+            contentDescription = null, 
+            modifier = Modifier.height(28.dp).widthIn(max = 60.dp),
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit
+        )
         Spacer(modifier = Modifier.width(12.dp))
         Text(text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoginActionButtonPreview() {
+    LoginActionButton(
+        text = "Đăng nhập bằng mail VNU",
+        painter = androidx.compose.ui.res.painterResource(id = com.uet.parking.R.drawable.vnu_logo),
+        containerColor = Color(0xFF0D47A1),
+        contentColor = Color.White,
+        onClick = {}
+    )
 }

@@ -1,6 +1,7 @@
 package com.uet.parking.ui.components.common
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -29,9 +30,12 @@ fun AppTopBar(
     onHomeClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
-    containerColor: Color = Color.White.copy(alpha = 0.9f)
+    containerColor: Color = Color.White.copy(alpha = 0.9f),
+    hasNotification: Boolean = false,
+    notificationCount: Int = 0
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var userMenuExpanded by remember { mutableStateOf(false) }
+    var notificationMenuExpanded by remember { mutableStateOf(false) }
 
     TopAppBar(
         title = {
@@ -56,35 +60,95 @@ fun AppTopBar(
             )
         },
         actions = {
-            Box(Modifier.padding(end = 8.dp)) {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "User Avatar",
-                        tint = PrimaryBlue,
-                        modifier = Modifier.size(32.dp)
-                    )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                // Notification Icon
+                Box {
+                    IconButton(
+                        onClick = { notificationMenuExpanded = true },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF0F2F5))
+                    ) {
+                        BadgedBox(
+                            badge = {
+                                if (hasNotification || notificationCount > 0) {
+                                    Badge(
+                                        containerColor = Color.Red,
+                                        contentColor = Color.White
+                                    ) {
+                                        if (notificationCount > 0) {
+                                            Text(notificationCount.toString())
+                                        }
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsNone,
+                                contentDescription = "Notifications",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = notificationMenuExpanded,
+                        onDismissRequest = { notificationMenuExpanded = false }
+                    ) {
+                        if (notificationCount == 0 && !hasNotification) {
+                            DropdownMenuItem(
+                                text = { Text("Không có thông báo mới", fontSize = 14.sp) },
+                                onClick = { notificationMenuExpanded = false },
+                                enabled = false
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text("Bạn có $notificationCount thông báo mới", fontWeight = FontWeight.Bold) },
+                                onClick = { notificationMenuExpanded = false }
+                            )
+                            // Thêm các mục thông báo mẫu hoặc từ dữ liệu thực tế ở đây
+                        }
+                    }
                 }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Cài đặt") },
-                        onClick = {
-                            expanded = false
-                            onSettingsClick()
-                        },
-                        leadingIcon = { Icon(Icons.Default.Settings, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Đăng xuất") },
-                        onClick = {
-                            expanded = false
-                            onLogoutClick()
-                        },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, null) }
-                    )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // User Profile Icon
+                Box {
+                    IconButton(onClick = { userMenuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "User Avatar",
+                            tint = PrimaryBlue,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = userMenuExpanded,
+                        onDismissRequest = { userMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Cài đặt") },
+                            onClick = {
+                                userMenuExpanded = false
+                                onSettingsClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Settings, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Đăng xuất") },
+                            onClick = {
+                                userMenuExpanded = false
+                                onLogoutClick()
+                            },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, null) }
+                        )
+                    }
                 }
             }
         },
