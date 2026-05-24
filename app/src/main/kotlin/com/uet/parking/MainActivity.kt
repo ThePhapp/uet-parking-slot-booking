@@ -75,9 +75,15 @@ fun MainNavigation(activityContext: ComponentActivity) {
 
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
+    
+    // Notification state management
+    val notificationViewModel: NotificationViewModel = viewModel()
+    val hasNotification by notificationViewModel.hasNotification
+    val notificationCount by notificationViewModel.notificationCount
 
     var userRole by rememberSaveable { mutableStateOf<UserRole?>(null) }
     var currentUserId by rememberSaveable { mutableStateOf<String?>(null) }
+    var isCheckingSession by remember { mutableStateOf(true) }
 
     val handleLogout = {
         FirebaseAuth.getInstance().signOut()
@@ -86,11 +92,41 @@ fun MainNavigation(activityContext: ComponentActivity) {
             .build()
         GoogleSignIn.getClient(context, gso).signOut()
         
+        // Clear remember me on manual logout
+        val sharedPrefs = context.getSharedPreferences("parking_prefs", android.content.Context.MODE_PRIVATE)
+        sharedPrefs.edit().putBoolean("remember_me", false).apply()
+
         currentUserId = null
         userRole = null
         navController.navigate(Screen.AUTH.route) {
             popUpTo(0) { inclusive = true }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        val firebaseUser = FirebaseAuth.getInstance().currentUser
+        val sharedPrefs = context.getSharedPreferences("parking_prefs", android.content.Context.MODE_PRIVATE)
+        val rememberMe = sharedPrefs.getBoolean("remember_me", false)
+
+        if (firebaseUser != null && rememberMe) {
+            val user = repository.getUserByIdSuspend(firebaseUser.uid)
+            if (user != null) {
+                currentUserId = user.userId
+                userRole = user.role
+                val startRoute = if (user.role == UserRole.ADMIN || user.role == UserRole.GUARD) 
+                    Screen.ADMIN_HOME.route 
+                else 
+                    Screen.HOME.route
+                navController.navigate(startRoute) {
+                    popUpTo(Screen.AUTH.route) { inclusive = true }
+                }
+            } else {
+                handleLogout()
+            }
+        } else if (firebaseUser != null && !rememberMe) {
+            handleLogout()
+        }
+        isCheckingSession = false
     }
 
     LaunchedEffect(currentRoute) {
@@ -143,7 +179,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
 
     Scaffold(
         topBar = {
-            if (currentRoute != Screen.AUTH.route && currentRoute?.startsWith("admin_qr_scan") != true) {
+            if (currentRoute != Screen.AUTH.route && currentRoute?.startsWith("admin_qr_scan") != true && !isCheckingSession) {
                 AppTopBar(
                     title = when {
                         currentRoute == Screen.HOME.route -> "Trang chủ"
@@ -170,12 +206,14 @@ fun MainNavigation(activityContext: ComponentActivity) {
                         val settingsRoute = if (isAdmin) Screen.ADMIN_SETTINGS.route else Screen.SETTINGS.route
                         navController.navigate(settingsRoute)
                     },
-                    onLogoutClick = handleLogout
+                    onLogoutClick = handleLogout,
+                    hasNotification = hasNotification,
+                    notificationCount = notificationCount
                 )
             }
         },
         bottomBar = {
-            if ((isUser || isAdmin) && currentRoute?.startsWith("admin_qr_scan") != true) {
+            if ((isUser || isAdmin) && currentRoute?.startsWith("admin_qr_scan") != true && !isCheckingSession) {
                 AppBottomNavigationBar(
                     isAdmin = isAdmin,
                     enabled = currentRoute != Screen.SEARCHING.route,
@@ -213,11 +251,16 @@ fun MainNavigation(activityContext: ComponentActivity) {
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.AUTH.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
+        if (isCheckingSession) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        } else {
+            NavHost(
+                navController = navController,
+                startDestination = Screen.AUTH.route,
+                modifier = Modifier.padding(innerPadding)
+            ) {
             composable(Screen.AUTH.route) {
                 AuthScreen(
                     repository = repository,
@@ -381,6 +424,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
                     onLogoutClick = handleLogout,
                     onEditProfileClick = { navController.navigate(Screen.EDIT_PROFILE.route) }
                 )
+               }
             }
         }
     }

@@ -18,8 +18,7 @@ fun AuthScreen(
         if (loginMode) {
             LoginScreen(
                 repository = repository,
-                onLoginSuccess = onLoginSuccess,
-                onNavigateToRegister = { isLoginMode = false }
+                onLoginSuccess = onLoginSuccess
             )
         } else {
             RegisterScreen(
