@@ -25,6 +25,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.layout.BoxWithConstraints
 import com.uet.parking.ui.viewmodel.BookingViewModel
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 
 @Composable
 fun BookingFormScreen(
@@ -131,7 +135,70 @@ fun BookingFormScreen(
                 }
             }
             
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = {
+                    viewModel.bookBySchedule(context)
+                },
+                enabled = !uiState.isLoading,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .widthIn(max = 600.dp)
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBlue),
+                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue)
+            ) {
+                Text("Đặt vé theo lịch học", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+            
             Spacer(Modifier.height(40.dp))
+        }
+
+        uiState.autoBookingResult?.let { result ->
+            AlertDialog(
+                onDismissRequest = { viewModel.clearAutoBookingResult() },
+                title = { Text("Kết quả đặt vé tự động") },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Thành công: ${result.successCount} vé", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
+                        Text("Thất bại: ${result.failCount} vé", color = Color.Red, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 300.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(result.results) { item ->
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Icon(
+                                        imageVector = if (item.success) Icons.Default.CheckCircle else Icons.Default.Error,
+                                        contentDescription = null,
+                                        tint = if (item.success) Color(0xFF4CAF50) else Color.Red,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Column {
+                                        Text(item.scheduleName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                        Text(item.time, fontSize = 12.sp, color = Color.Gray)
+                                        Text(item.message, fontSize = 13.sp, color = if (item.success) Color(0xFF4CAF50) else Color.Red)
+                                    }
+                                }
+                                Divider(modifier = Modifier.padding(top = 8.dp))
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearAutoBookingResult() }) {
+                        Text("Đóng")
+                    }
+                }
+            )
         }
     }
 }
