@@ -15,19 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uet.parking.ui.components.DebtCard
-import com.uet.parking.ui.components.EventCard
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.viewmodel.HomeViewModel
 import java.text.NumberFormat
 import java.util.Locale
-
-data class EventUiModel(
-    val title: String,
-    val location: String,
-    val time: String = "",
-    val featured: Boolean = false
-)
 
 @Composable
 fun HomeScreen(
@@ -40,22 +32,19 @@ fun HomeScreen(
     val userWithProfile by viewModel.userProfile.collectAsState()
     val paymentUiState by viewModel.paymentUiState.collectAsState()
 
-    val events = listOf(
-        EventUiModel(
-            title = "Hội thảo Công nghệ Blockchain trong Giáo dục 2026",
-            location = "Giảng đường A1",
-            time = "14:00 - 20/10",
-            featured = true
-        ),
-        EventUiModel(
-            title = "Đêm nhạc Acoustic: Giai điệu mùa thu Sinh viên",
-            location = "Sân hội trường C"
-        ),
-        EventUiModel(
-            title = "Kỹ năng mềm: Tư duy thiết kế trong khởi nghiệp",
-            location = "Phòng 402, Nhà B"
+    val schedules by viewModel.studySchedules.collectAsState()
+
+    val weeklySchedules = schedules
+        .filter { schedule ->
+            schedule.dayOfWeek in 2..7 &&
+                    schedule.startHour in 1..4
+        }
+        .distinctBy { schedule ->
+            "${schedule.dayOfWeek}_${schedule.startHour}_${schedule.subjectName}_${schedule.room}"
+        }
+        .sortedWith(
+            compareBy({ it.dayOfWeek }, { it.startHour })
         )
-    )
 
     Box(
         modifier = Modifier
@@ -175,8 +164,19 @@ fun HomeScreen(
 
             item { HomeSectionHeader() }
 
-            items(events) { event ->
-                EventCard(event = event)
+            if (weeklySchedules.isEmpty()) {
+                item {
+                    EmptyScheduleNotificationCard(
+                        onStudyScheduleClick = onStudyScheduleClick
+                    )
+                }
+            } else {
+                items(weeklySchedules) { schedule ->
+                    ScheduleNotificationCard(
+                        schedule = schedule,
+                        onBookNow = onBookNow
+                    )
+                }
             }
             item { Spacer(modifier = Modifier.height(12.dp)) }
         }
@@ -198,15 +198,159 @@ fun HomeScreen(
 
 @Composable
 private fun HomeSectionHeader() {
-    Row(
+    Column {
+        Text(
+            text = "THÔNG BÁO",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = PrimaryBlue,
+            letterSpacing = 1.sp
+        )
+
+        Text(
+            text = "Thông báo",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.ExtraBold
+            )
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "Các lịch học của bạn. Đặt vé xe trước khi đến trường.",
+            fontSize = 13.sp,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
+private fun ScheduleNotificationCard(
+    schedule: com.uet.parking.data.model.StudySchedule,
+    onBookNow: () -> Unit
+) {
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Column {
-            Text("THÔNG BÁO MỚI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue, letterSpacing = 1.sp)
-            Text("Sự kiện trường học", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Bạn có lịch học",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBlue
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = schedule.subjectName,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF191C1E)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Phòng: ${schedule.room}",
+                fontSize = 14.sp,
+                color = Color(0xFF737685)
+            )
+
+            Text(
+                text = "${schedule.dayOfWeek.toVietnameseDay()} • Ca ${schedule.startHour} • ${schedule.startHour.toShiftTime()}",
+                fontSize = 14.sp,
+                color = Color(0xFF737685)
+            )
+
+            if (schedule.teacherName.isNotBlank()) {
+                Text(
+                    text = "Giảng viên: ${schedule.teacherName}",
+                    fontSize = 14.sp,
+                    color = Color(0xFF737685)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Button(
+                onClick = onBookNow,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    text = "Đặt vé xe",
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
-        Text("Xem tất cả", color = PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+    }
+}
+
+@Composable
+private fun EmptyScheduleNotificationCard(
+    onStudyScheduleClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Bạn chưa có lịch học nào.",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Hãy tạo lịch học để hệ thống hiển thị thông báo đặt vé xe.",
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onStudyScheduleClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("Tạo lịch học")
+            }
+        }
+    }
+}
+
+private fun Int.toVietnameseDay(): String {
+    return when (this) {
+        2 -> "Thứ 2"
+        3 -> "Thứ 3"
+        4 -> "Thứ 4"
+        5 -> "Thứ 5"
+        6 -> "Thứ 6"
+        7 -> "Thứ 7"
+        8 -> "Chủ nhật"
+        else -> "Không rõ ngày"
+    }
+}
+
+private fun Int.toShiftTime(): String {
+    return when (this) {
+        1 -> "7h - 9h40"
+        2 -> "9h50 - 12h30"
+        3 -> "13h30 - 16h10"
+        4 -> "16h20 - 19h"
+        else -> "Không rõ ca"
     }
 }
