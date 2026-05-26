@@ -26,17 +26,20 @@ class PaymentViewModel(
                 initialValue = null
             )
 
-    fun buildVietQrUrl(amount: Double): String {
-        val bankId = "MB"
-        val accountNo = "0123456789"
-        val accountName = URLEncoder.encode("UET PARKING", "UTF-8")
-        val addInfo = URLEncoder.encode("UETPARKING$userId", "UTF-8")
+    fun buildVnpayMockQrUrl(amount: Double): String {
         val amountInt = amount.toInt()
+        val info = URLEncoder.encode("VNPAY UET PARKING $userId $amountInt", "UTF-8")
 
-        return "https://img.vietqr.io/image/$bankId-$accountNo-compact2.png" +
-                "?amount=$amountInt" +
-                "&addInfo=$addInfo" +
-                "&accountName=$accountName"
+        return "https://api.qrserver.com/v1/create-qr-code/" +
+                "?size=350x350" +
+                "&data=$info"
+    }
+
+    fun confirmVnpayPayment(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            repository.updateDebt(userId, 0.0)
+            onSuccess()
+        }
     }
 
     fun confirmPayment(onSuccess: () -> Unit) {
