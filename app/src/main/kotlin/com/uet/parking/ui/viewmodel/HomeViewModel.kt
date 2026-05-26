@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
+import com.uet.parking.data.model.StudySchedule
+import com.uet.parking.data.repository.StudyScheduleRepository
 data class PaymentUiState(
     val showDialog: Boolean = false,
     val isSuccess: Boolean = false,
@@ -22,6 +23,38 @@ class HomeViewModel(
     private val repository: ParkingRepository,
     private val userId: String
 ) : ViewModel() {
+
+    private val studyScheduleRepository = StudyScheduleRepository()
+
+    private val _studySchedules = MutableStateFlow<List<StudySchedule>>(emptyList())
+    val studySchedules: StateFlow<List<StudySchedule>> = _studySchedules
+
+    init {
+        observeStudySchedules()
+    }
+
+    private fun observeStudySchedules() {
+        viewModelScope.launch {
+            studyScheduleRepository.getSchedulesByUser(userId).collect { schedules ->
+
+                val daysInWeeklyTable = 2..7
+                val shiftsInWeeklyTable = 1..4
+
+                _studySchedules.value = schedules
+                    .filter { schedule ->
+                        schedule.dayOfWeek in daysInWeeklyTable &&
+                                schedule.startHour in shiftsInWeeklyTable
+                    }
+                    .distinctBy { schedule ->
+                        "${schedule.dayOfWeek}_${schedule.startHour}"
+                    }
+                    .sortedWith(
+                        compareBy<StudySchedule> { it.dayOfWeek }
+                            .thenBy { it.startHour }
+                    )
+            }
+        }
+    }
 
     val userProfile: StateFlow<UserWithProfile?> =
         repository.getUserWithProfile(userId)
