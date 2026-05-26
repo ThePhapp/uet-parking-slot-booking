@@ -27,7 +27,7 @@ fun PaymentScreen(
     val userWithProfile by viewModel.userProfile.collectAsState()
     val debt = userWithProfile?.info?.debt ?: 0.0
     val qrUrl = remember(debt) {
-        if (debt > 0) viewModel.buildVietQrUrl(debt) else ""
+        if (debt > 0) viewModel.buildVnpayMockQrUrl(debt) else ""
     }
 
     Box(
@@ -71,7 +71,7 @@ fun PaymentScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Quét mã QR để thanh toán",
+                    text = "Thanh toán qua VNPAY",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF11131F)
@@ -100,7 +100,7 @@ fun PaymentScreen(
                     ) {
                         AsyncImage(
                             model = qrUrl,
-                            contentDescription = "VietQR Payment QR",
+                            contentDescription = "VNPAY Payment QR",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(360.dp)
@@ -109,7 +109,7 @@ fun PaymentScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "Nội dung chuyển khoản: UETPARKING${userWithProfile?.user?.userId ?: ""}",
+                            text = "Mã giao dịch VNPAY demo: UETPARKING${userWithProfile?.user?.userId ?: ""}",
                             fontSize = 13.sp,
                             color = Color.Gray
                         )
@@ -141,7 +141,7 @@ fun PaymentScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Demo mock: sau khi bấm nút này, hệ thống giả lập xác nhận thanh toán thành công và đưa số nợ về 0.",
+                    text = "Demo VNPAY sandbox/mock: không trừ tiền thật, chỉ giả lập xác nhận thành công và cập nhật số nợ về 0.",
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
