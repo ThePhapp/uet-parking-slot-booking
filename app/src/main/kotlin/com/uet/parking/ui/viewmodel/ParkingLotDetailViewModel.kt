@@ -89,7 +89,16 @@ class ParkingLotDetailViewModel(
 
                 // Nếu đến sớm hơn 30 phút (diffMinutes > 30)
                 if (diffMinutes > 30) {
-                    _toastMessage.value = "Vào bãi thất bại: Vui lòng quay lại sau ${diffMinutes - 30} phút"
+                    val waitMinutes = diffMinutes - 30
+                    if (waitMinutes >= 60) {
+                        val hours = waitMinutes / 60
+                        val mins = waitMinutes % 60
+                        val hourStr = if (hours > 0) "${hours} giờ " else ""
+                        val minStr = if (mins > 0) "${mins} phút" else ""
+                        _toastMessage.value = "Vé bắt đầu lúc ${ticket.startTime}. Vui lòng quay lại sau $hourStr$minStr".trim()
+                    } else {
+                        _toastMessage.value = "Vào bãi thất bại: Vui lòng quay lại sau $waitMinutes phút"
+                    }
                     return@launch
                 }
             }
