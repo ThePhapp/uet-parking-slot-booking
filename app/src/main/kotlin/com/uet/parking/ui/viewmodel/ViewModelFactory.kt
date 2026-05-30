@@ -30,6 +30,10 @@ class ViewModelFactory(
                 @Suppress("UNCHECKED_CAST")
                 SettingsViewModel(repository, userId) as T
             }
+            modelClass.isAssignableFrom(NotificationViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                NotificationViewModel(repository) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

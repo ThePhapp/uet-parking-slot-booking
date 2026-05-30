@@ -7,10 +7,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,6 +24,7 @@ import com.uet.parking.ui.viewmodel.HomeViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -31,7 +35,10 @@ fun HomeScreen(
 ) {
     val userWithProfile by viewModel.userProfile.collectAsState()
     val paymentUiState by viewModel.paymentUiState.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
+    val pullToRefreshState = rememberPullToRefreshState()
+    
     val schedules by viewModel.studySchedules.collectAsState()
 
     val weeklySchedules = schedules
@@ -46,10 +53,25 @@ fun HomeScreen(
             compareBy({ it.dayOfWeek }, { it.startHour })
         )
 
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            pullToRefreshState.startRefresh()
+        } else {
+            pullToRefreshState.endRefresh()
+        }
+    }
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.refreshData()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundGray)
+            .nestedScroll(pullToRefreshState.nestedScrollConnection)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -180,6 +202,11 @@ fun HomeScreen(
             }
             item { Spacer(modifier = Modifier.height(12.dp)) }
         }
+
+        PullToRefreshContainer(
+            modifier = Modifier.align(Alignment.TopCenter),
+            state = pullToRefreshState,
+        )
 
         if (paymentUiState.showDialog) {
             AlertDialog(

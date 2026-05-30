@@ -19,6 +19,41 @@ class ParkingRepository(
     private val userInfoCollection = firestore.collection("userInfo")
     private val adminInfoCollection = firestore.collection("adminInfo")
     private val hourlyLoadsCollection = firestore.collection("hourlyLoads")
+    private val notificationsCollection = firestore.collection("notifications")
+
+    // --- Notifications ---
+    fun getNotificationsForUser(userId: String): Flow<List<Notification>> {
+        return notificationsCollection
+            .whereEqualTo("userId", userId)
+            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Notification::class.java)?.copy(notificationId = doc.id)
+                }
+            }
+    }
+
+    suspend fun addNotification(notification: Notification) {
+        notificationsCollection.add(notification).await()
+    }
+
+    suspend fun markNotificationAsRead(notificationId: String) {
+        notificationsCollection.document(notificationId).update("isRead", true).await()
+    }
+
+    suspend fun markAllNotificationsAsRead(userId: String) {
+        val unread = notificationsCollection
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("isRead", false)
+            .get().await()
+        
+        firestore.runBatch { batch ->
+            unread.documents.forEach { doc ->
+                batch.update(doc.reference, "isRead", true)
+            }
+        }.await()
+    }
 
     // --- User ---
     suspend fun getUserByEmail(email: String): User? {

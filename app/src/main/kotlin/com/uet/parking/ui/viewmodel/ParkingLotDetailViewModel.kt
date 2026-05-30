@@ -108,7 +108,7 @@ class ParkingLotDetailViewModel(
             repository.incrementKPI(adminId)
             android.util.Log.d("QR_SCAN_DEBUG", "👉 thành")
             
-            com.uet.parking.utils.NotificationHelper.showCheckInSuccess(context, ticketId)
+            com.uet.parking.utils.NotificationHelper.showCheckInSuccess(context, ticketId, ticket.userId)
             
             _toastMessage.value = "Quét vào thành công! Xe đã vào bãi."
             refreshLotData()
@@ -151,7 +151,7 @@ class ParkingLotDetailViewModel(
             repository.deleteTicket(ticketId)
             
             com.uet.parking.utils.NotificationScheduler.cancelNotifications(context, ticketId)
-            com.uet.parking.utils.NotificationHelper.showCheckOutSuccess(context, ticketId)
+            com.uet.parking.utils.NotificationHelper.showCheckOutSuccess(context, ticketId, ticket.userId)
 
             val newCount = ((currentLot?.current ?: 0) - 1).coerceAtLeast(0)
             repository.updateCurrentOccupancy(lotId, newCount)

@@ -17,25 +17,24 @@ class TicketNotificationWorker(
 
     override suspend fun doWork(): Result {
         val ticketId = inputData.getString("ticketId") ?: return Result.failure()
+        val userId = inputData.getString("userId")
         val type = inputData.getString("type") ?: return Result.failure()
 
         Log.d("TicketNotificationWorker", "Running worker for ticket: $ticketId, type: $type")
 
         return try {
             val firestore = FirebaseFirestore.getInstance()
-            val repository = ParkingRepository(firestore)
-
             val document = firestore.collection("tickets").document(ticketId).get().await()
             val statusStr = document.getString("status")
             val status = TicketStatus.values().find { it.value == statusStr }
 
             if (type == "PRE_BOOKING") {
                 if (status == TicketStatus.PENDING || status == TicketStatus.CONFIRMED) {
-                    NotificationHelper.showPreBooking(applicationContext, ticketId)
+                    NotificationHelper.showPreBooking(applicationContext, ticketId, userId)
                 }
             } else if (type == "POST_BOOKING") {
                 if (status == TicketStatus.IN_PROGRESS) {
-                    NotificationHelper.showPostBooking(applicationContext, ticketId)
+                    NotificationHelper.showPostBooking(applicationContext, ticketId, userId)
                 }
             }
 

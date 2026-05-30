@@ -54,8 +54,9 @@ fun SuccessScreen(
     
     LaunchedEffect(latestTicket?.ticketId) {
         val ticketId = latestTicket?.ticketId
+        val userId = latestTicket?.userId
         if (ticketId != null && ticketId != notifiedTicketId) {
-            com.uet.parking.utils.NotificationHelper.showBookingSuccess(context, ticketId)
+            com.uet.parking.utils.NotificationHelper.showBookingSuccess(context, ticketId, userId)
             notifiedTicketId = ticketId
         }
     }

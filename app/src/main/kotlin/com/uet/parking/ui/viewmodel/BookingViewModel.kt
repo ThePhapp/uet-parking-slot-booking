@@ -254,7 +254,7 @@ class BookingViewModel(
         viewModelScope.launch {
             try {
                 repository.deleteTicket(ticketId)
-                com.uet.parking.utils.NotificationHelper.showTicketCancelled(context, ticketId)
+                com.uet.parking.utils.NotificationHelper.showTicketCancelled(context, ticketId, userId)
                 com.uet.parking.utils.NotificationScheduler.cancelNotifications(context, ticketId)
             } catch (e: Exception) {
                 _bookingUiState.update { it.copy(errorMessage = "Lỗi xóa vé: ${e.message}") }

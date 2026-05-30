@@ -22,4 +22,8 @@ object DateUtils {
     fun getTimeDifference(startTime: Long, endTime: Long): Long {
         return endTime - startTime
     }
+
+    fun formatTimestamp(timestamp: com.google.firebase.Timestamp): String {
+        return dateFormat.format(timestamp.toDate())
+    }
 }
