@@ -1,6 +1,7 @@
 package com.uet.parking.ui.screens.settings
 
 import android.annotation.SuppressLint
+import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -137,9 +138,12 @@ fun SettingsScreen(
     val uriHandler = LocalUriHandler.current
     
     val context = LocalContext.current
+    val sharedPrefs = remember { context.getSharedPreferences("parking_prefs", Context.MODE_PRIVATE) }
     var user by remember { mutableStateOf<User?>(null) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
-    var notificationsEnabled by remember { mutableStateOf(true) }
+    var notificationsEnabled by remember { 
+        mutableStateOf(sharedPrefs.getBoolean("notifications_enabled", true)) 
+    }
     
     LaunchedEffect(userId) {
         user = repository.getUserByIdSuspend(userId)
@@ -222,6 +226,7 @@ fun SettingsScreen(
                                     checked = notificationsEnabled, 
                                     onCheckedChange = { 
                                         notificationsEnabled = it
+                                        sharedPrefs.edit().putBoolean("notifications_enabled", it).apply()
                                         val status = if (it) "đã bật" else "đã tắt"
                                         Toast.makeText(context, "Thông báo $status", Toast.LENGTH_SHORT).show()
                                     }

@@ -3,30 +3,43 @@ package com.uet.parking.ui.viewmodel
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.uet.parking.data.model.Notification
+import com.uet.parking.data.repository.ParkingRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class NotificationViewModel : ViewModel() {
-    private val _hasNotification = mutableStateOf(false)
-    val hasNotification: State<Boolean> = _hasNotification
+class NotificationViewModel(private val repository: ParkingRepository) : ViewModel() {
+    private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
+    val notifications: StateFlow<List<Notification>> = _notifications.asStateFlow()
 
-    private val _notificationCount = mutableStateOf(0)
-    val notificationCount: State<Int> = _notificationCount
+    private val _unreadCount = mutableStateOf(0)
+    val unreadCount: State<Int> = _unreadCount
 
-    fun setHasNotification(has: Boolean) {
-        _hasNotification.value = has
+    private var currentUserId: String? = null
+
+    fun loadNotifications(userId: String) {
+        currentUserId = userId
+        viewModelScope.launch {
+            repository.getNotificationsForUser(userId).collect { list ->
+                _notifications.value = list
+                _unreadCount.value = list.count { !it.isRead }
+            }
+        }
     }
 
-    fun setNotificationCount(count: Int) {
-        _notificationCount.value = count
-        _hasNotification.value = count > 0
+    fun markAsRead(notificationId: String) {
+        viewModelScope.launch {
+            repository.markNotificationAsRead(notificationId)
+        }
     }
 
-    fun clearNotifications() {
-        _notificationCount.value = 0
-        _hasNotification.value = false
-    }
-
-    // Giả lập nhận thông báo mới
-    fun simulateNewNotification() {
-        setNotificationCount(_notificationCount.value + 1)
+    fun markAllAsRead() {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            repository.markAllNotificationsAsRead(userId)
+        }
     }
 }

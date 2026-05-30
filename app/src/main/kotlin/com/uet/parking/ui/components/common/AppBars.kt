@@ -20,8 +20,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import com.uet.parking.R
+import com.uet.parking.data.model.Notification
 import com.uet.parking.ui.theme.PrimaryBlue
+import com.uet.parking.utils.DateUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +35,10 @@ fun AppTopBar(
     onLogoutClick: () -> Unit = {},
     containerColor: Color = Color.White.copy(alpha = 0.9f),
     hasNotification: Boolean = false,
-    notificationCount: Int = 0
+    notificationCount: Int = 0,
+    notifications: List<Notification> = emptyList(),
+    onNotificationClick: (String) -> Unit = {},
+    onMarkAllRead: () -> Unit = {}
 ) {
     var userMenuExpanded by remember { mutableStateOf(false) }
     var notificationMenuExpanded by remember { mutableStateOf(false) }
@@ -98,20 +104,82 @@ fun AppTopBar(
 
                     DropdownMenu(
                         expanded = notificationMenuExpanded,
-                        onDismissRequest = { notificationMenuExpanded = false }
+                        onDismissRequest = { notificationMenuExpanded = false },
+                        modifier = Modifier
+                            .width(280.dp)
+                            .heightIn(max = 400.dp)
                     ) {
-                        if (notificationCount == 0 && !hasNotification) {
+                        if (notifications.isEmpty()) {
                             DropdownMenuItem(
-                                text = { Text("Không có thông báo mới", fontSize = 14.sp) },
+                                text = { Text("Không có thông báo nào", fontSize = 14.sp) },
                                 onClick = { notificationMenuExpanded = false },
                                 enabled = false
                             )
                         } else {
-                            DropdownMenuItem(
-                                text = { Text("Bạn có $notificationCount thông báo mới", fontWeight = FontWeight.Bold) },
-                                onClick = { notificationMenuExpanded = false }
-                            )
-                            // Thêm các mục thông báo mẫu hoặc từ dữ liệu thực tế ở đây
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Thông báo", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text(
+                                    "Đánh dấu tất cả là đã đọc",
+                                    fontSize = 12.sp,
+                                    color = PrimaryBlue,
+                                    modifier = Modifier.clickable { onMarkAllRead() }
+                                )
+                            }
+                            HorizontalDivider()
+                            
+                            notifications.take(10).forEach { notification ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                notification.title,
+                                                fontWeight = if (notification.isRead) FontWeight.Normal else FontWeight.Bold,
+                                                fontSize = 14.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                notification.message,
+                                                fontSize = 12.sp,
+                                                color = Color.Gray,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                DateUtils.formatTimestamp(notification.timestamp),
+                                                fontSize = 10.sp,
+                                                color = Color.LightGray
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        onNotificationClick(notification.notificationId)
+                                        notificationMenuExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        val icon = when (notification.type) {
+                                            "SUCCESS" -> Icons.Default.CheckCircle
+                                            "WARNING" -> Icons.Default.Warning
+                                            "ERROR" -> Icons.Default.Error
+                                            else -> Icons.Default.Info
+                                        }
+                                        val color = when (notification.type) {
+                                            "SUCCESS" -> Color(0xFF4CAF50)
+                                            "WARNING" -> Color(0xFFFF9800)
+                                            "ERROR" -> Color(0xFFF44336)
+                                            else -> PrimaryBlue
+                                        }
+                                        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+                                    }
+                                )
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+                            }
                         }
                     }
                 }

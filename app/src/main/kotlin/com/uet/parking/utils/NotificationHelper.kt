@@ -8,6 +8,12 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.uet.parking.MainActivity
+import com.uet.parking.data.model.Notification
+import com.uet.parking.data.repository.ParkingRepository
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @kotlin.OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 object NotificationHelper {
@@ -15,6 +21,8 @@ object NotificationHelper {
     private const val CHANNEL_ID = "parking_notifications_v2"
     private const val CHANNEL_NAME = "Parking Notifications"
     private const val CHANNEL_DESC = "Notifications for parking tickets and updates"
+    
+    private val repository by lazy { ParkingRepository(FirebaseFirestore.getInstance()) }
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -30,7 +38,27 @@ object NotificationHelper {
         }
     }
 
-    private fun showNotification(context: Context, title: String, content: String, ticketId: String?) {
+    private fun showNotification(context: Context, title: String, content: String, ticketId: String?, userId: String?, type: String = "INFO") {
+        // Lưu vào Firestore nếu có userId
+        if (userId != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                repository.addNotification(
+                    Notification(
+                        userId = userId,
+                        title = title,
+                        message = content,
+                        type = type
+                    )
+                )
+            }
+        }
+
+        // Kiểm tra cài đặt thông báo trong SharedPreferences cho system notification
+        val sharedPrefs = context.getSharedPreferences("parking_prefs", Context.MODE_PRIVATE)
+        val notificationsEnabled = sharedPrefs.getBoolean("notifications_enabled", true)
+        
+        if (!notificationsEnabled) return
+
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             if (ticketId != null) {
@@ -57,39 +85,39 @@ object NotificationHelper {
         manager.notify(ticketId?.hashCode() ?: System.currentTimeMillis().toInt(), builder.build())
     }
 
-    fun showBookingSuccess(context: Context, ticketId: String?) {
-        showNotification(context, "Đặt vé thành công", "Vé của bạn đã được tạo và chờ xác nhận.", ticketId)
+    fun showBookingSuccess(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Đặt vé thành công", "Vé của bạn đã được tạo và chờ xác nhận.", ticketId, userId, "SUCCESS")
     }
 
-    fun showTicketConfirmed(context: Context, ticketId: String?) {
-        showNotification(context, "Vé đã được xác nhận", "Vé của bạn đã được xác nhận. Vui lòng xem chi tiết.", ticketId)
+    fun showTicketConfirmed(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Vé đã được xác nhận", "Vé của bạn đã được xác nhận. Vui lòng xem chi tiết.", ticketId, userId, "SUCCESS")
     }
 
-    fun showTicketCancelled(context: Context, ticketId: String?) {
-        showNotification(context, "Vé đã bị hủy", "Vé gửi xe của bạn đã bị hủy.", ticketId)
+    fun showTicketCancelled(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Vé đã bị hủy", "Vé gửi xe của bạn đã bị hủy.", ticketId, userId, "ERROR")
     }
 
-    fun showCheckInSuccess(context: Context, ticketId: String?) {
-        showNotification(context, "Check-in thành công", "Bạn đã check-in thành công vào bãi đỗ.", ticketId)
+    fun showCheckInSuccess(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Check-in thành công", "Bạn đã check-in thành công vào bãi đỗ.", ticketId, userId, "SUCCESS")
     }
 
-    fun showCheckOutSuccess(context: Context, ticketId: String?) {
-        showNotification(context, "Check-out thành công", "Bạn đã lấy xe ra khỏi bãi đỗ thành công.", ticketId)
+    fun showCheckOutSuccess(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Check-out thành công", "Bạn đã lấy xe ra khỏi bãi đỗ thành công.", ticketId, userId, "SUCCESS")
     }
 
-    fun showTicketExpiringSoon(context: Context, ticketId: String?) {
-        showNotification(context, "Vé sắp hết hạn", "Vé của bạn sắp hết hạn. Vui lòng chú ý thời gian.", ticketId)
+    fun showTicketExpiringSoon(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Vé sắp hết hạn", "Vé của bạn sắp hết hạn. Vui lòng chú ý thời gian.", ticketId, userId, "WARNING")
     }
 
-    fun showTicketOverdue(context: Context, ticketId: String?) {
-        showNotification(context, "Vé đã quá hạn", "Vé của bạn đã quá hạn. Vui lòng lấy xe ngay.", ticketId)
+    fun showTicketOverdue(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Vé đã quá hạn", "Vé của bạn đã quá hạn. Vui lòng lấy xe ngay.", ticketId, userId, "ERROR")
     }
     
-    fun showPreBooking(context: Context, ticketId: String?) {
-        showNotification(context, "Sắp đến giờ gửi xe", "Vé của bạn sẽ bắt đầu sau 30 phút. Vui lòng chuẩn bị đến bãi đỗ.", ticketId)
+    fun showPreBooking(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Sắp đến giờ gửi xe", "Vé của bạn sẽ bắt đầu sau 30 phút. Vui lòng chuẩn bị đến bãi đỗ.", ticketId, userId, "INFO")
     }
 
-    fun showPostBooking(context: Context, ticketId: String?) {
-        showNotification(context, "Sắp quá hạn lấy xe", "Vé của bạn đã kết thúc. Vui lòng lấy xe trong 5 phút để tránh phát sinh phí hoặc vi phạm quy định.", ticketId)
+    fun showPostBooking(context: Context, ticketId: String?, userId: String?) {
+        showNotification(context, "Sắp quá hạn lấy xe", "Vé của bạn đã kết thúc. Vui lòng lấy xe trong 5 phút để tránh phát sinh phí hoặc vi phạm quy định.", ticketId, userId, "WARNING")
     }
 }

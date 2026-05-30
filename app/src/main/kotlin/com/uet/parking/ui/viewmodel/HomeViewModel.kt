@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.uet.parking.data.model.StudySchedule
 import com.uet.parking.data.repository.StudyScheduleRepository
+
 data class PaymentUiState(
     val showDialog: Boolean = false,
     val isSuccess: Boolean = false,
@@ -29,6 +30,9 @@ class HomeViewModel(
     private val _studySchedules = MutableStateFlow<List<StudySchedule>>(emptyList())
     val studySchedules: StateFlow<List<StudySchedule>> = _studySchedules
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     init {
         observeStudySchedules()
     }
@@ -36,7 +40,6 @@ class HomeViewModel(
     private fun observeStudySchedules() {
         viewModelScope.launch {
             studyScheduleRepository.getSchedulesByUser(userId).collect { schedules ->
-
                 val daysInWeeklyTable = 2..7
                 val shiftsInWeeklyTable = 1..4
 
@@ -53,6 +56,17 @@ class HomeViewModel(
                             .thenBy { it.startHour }
                     )
             }
+        }
+    }
+
+    fun refreshData() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            // Thực hiện refresh các dữ liệu cần thiết
+            observeStudySchedules()
+            // Đợi một chút để giả lập loading nếu dữ liệu load quá nhanh
+            kotlinx.coroutines.delay(1000)
+            _isRefreshing.value = false
         }
     }
 

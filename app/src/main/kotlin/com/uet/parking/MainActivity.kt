@@ -65,6 +65,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private fun navigateToMain(navController: androidx.navigation.NavHostController, role: UserRole) {
+    val startRoute = if (role == UserRole.ADMIN || role == UserRole.GUARD) 
+        Screen.ADMIN_HOME.route 
+    else 
+        Screen.HOME.route
+    navController.navigate(startRoute) {
+        popUpTo(Screen.AUTH.route) { inclusive = true }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainNavigation(activityContext: ComponentActivity) {
@@ -76,14 +86,22 @@ fun MainNavigation(activityContext: ComponentActivity) {
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
     
-    // Notification state management
-    val notificationViewModel: NotificationViewModel = viewModel()
-    val hasNotification by notificationViewModel.hasNotification
-    val notificationCount by notificationViewModel.notificationCount
-
     var userRole by rememberSaveable { mutableStateOf<UserRole?>(null) }
     var currentUserId by rememberSaveable { mutableStateOf<String?>(null) }
     var isCheckingSession by remember { mutableStateOf(true) }
+
+    // Notification state management
+    val notificationViewModel: NotificationViewModel = viewModel(
+        factory = ViewModelFactory(repository, currentUserId ?: "")
+    )
+    val notifications by notificationViewModel.notifications.collectAsState()
+    val unreadCount by notificationViewModel.unreadCount
+
+    LaunchedEffect(currentUserId) {
+        currentUserId?.let {
+            notificationViewModel.loadNotifications(it)
+        }
+    }
 
     val handleLogout = {
         FirebaseAuth.getInstance().signOut()
@@ -92,9 +110,13 @@ fun MainNavigation(activityContext: ComponentActivity) {
             .build()
         GoogleSignIn.getClient(context, gso).signOut()
         
-        // Clear remember me on manual logout
+        // Xóa thông tin phiên đăng nhập lưu trong máy
         val sharedPrefs = context.getSharedPreferences("parking_prefs", android.content.Context.MODE_PRIVATE)
-        sharedPrefs.edit().putBoolean("remember_me", false).apply()
+        sharedPrefs.edit().apply {
+            remove("logged_in_user_id")
+            remove("user_role")
+            apply()
+        }
 
         currentUserId = null
         userRole = null
@@ -106,29 +128,32 @@ fun MainNavigation(activityContext: ComponentActivity) {
     LaunchedEffect(Unit) {
         val firebaseUser = FirebaseAuth.getInstance().currentUser
         val sharedPrefs = context.getSharedPreferences("parking_prefs", android.content.Context.MODE_PRIVATE)
-        val rememberMe = sharedPrefs.getBoolean("remember_me", false)
+        val savedUserId = sharedPrefs.getString("logged_in_user_id", null)
+        val savedRole = sharedPrefs.getString("user_role", null)
 
-        if (firebaseUser != null && rememberMe) {
-            val user = repository.getUserByIdSuspend(firebaseUser.uid)
-            if (user != null) {
-                currentUserId = user.userId
-                userRole = user.role
-                val startRoute = if (user.role == UserRole.ADMIN || user.role == UserRole.GUARD) 
-                    Screen.ADMIN_HOME.route 
-                else 
-                    Screen.HOME.route
-                navController.navigate(startRoute) {
-                    popUpTo(Screen.AUTH.route) { inclusive = true }
+        if (firebaseUser != null) {
+            try {
+                val user = repository.getUserByIdSuspend(firebaseUser.uid)
+                if (user != null) {
+                    currentUserId = user.userId
+                    userRole = user.role
+                } else {
+                    FirebaseAuth.getInstance().signOut()
                 }
-            } else {
-                handleLogout()
+            } catch (e: Exception) {
+                // Có thể phục hồi role từ cache nếu lỗi mạng
+                if (savedUserId == firebaseUser.uid && savedRole != null) {
+                    currentUserId = savedUserId
+                    userRole = UserRole.valueOf(savedRole)
+                }
             }
-        } else if (firebaseUser != null && !rememberMe) {
-            handleLogout()
+        } else if (savedUserId != null && savedRole != null) {
+            // Khôi phục session cho đăng nhập bằng tài khoản (Email/Pass)
+            currentUserId = savedUserId
+            userRole = UserRole.valueOf(savedRole)
         }
         isCheckingSession = false
     }
-
     LaunchedEffect(currentRoute) {
         if (currentRoute == Screen.AUTH.route) {
             // Logic Logout đã xử lý xóa session
@@ -170,8 +195,9 @@ fun MainNavigation(activityContext: ComponentActivity) {
 
     val ticketIdFromIntent = activityContext.intent?.getStringExtra("ticketId")
     
-    LaunchedEffect(currentUserId, userRole, ticketIdFromIntent) {
-        if (currentUserId != null && ticketIdFromIntent != null) {
+    // Đảm bảo chỉ điều hướng khi NavHost đã sẵn sàng (isCheckingSession == false)
+    LaunchedEffect(currentUserId, userRole, ticketIdFromIntent, isCheckingSession) {
+        if (!isCheckingSession && currentUserId != null && ticketIdFromIntent != null) {
             navController.navigate(Screen.TICKETS.route)
             activityContext.intent?.removeExtra("ticketId")
         }
@@ -207,8 +233,11 @@ fun MainNavigation(activityContext: ComponentActivity) {
                         navController.navigate(settingsRoute)
                     },
                     onLogoutClick = handleLogout,
-                    hasNotification = hasNotification,
-                    notificationCount = notificationCount
+                    hasNotification = unreadCount > 0,
+                    notificationCount = unreadCount,
+                    notifications = notifications,
+                    onNotificationClick = { notificationViewModel.markAsRead(it) },
+                    onMarkAllRead = { notificationViewModel.markAllAsRead() }
                 )
             }
         },
@@ -256,9 +285,15 @@ fun MainNavigation(activityContext: ComponentActivity) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
+            val startDestination = when {
+                userRole == null -> Screen.AUTH.route
+                userRole == UserRole.ADMIN || userRole == UserRole.GUARD -> Screen.ADMIN_HOME.route
+                else -> Screen.HOME.route
+            }
+            
             NavHost(
                 navController = navController,
-                startDestination = Screen.AUTH.route,
+                startDestination = startDestination,
                 modifier = Modifier.padding(innerPadding)
             ) {
             composable(Screen.AUTH.route) {

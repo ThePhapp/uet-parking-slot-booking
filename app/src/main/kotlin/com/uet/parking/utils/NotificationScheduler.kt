@@ -25,6 +25,7 @@ object NotificationScheduler {
             if (delay > 0) {
                 val data = Data.Builder()
                     .putString("ticketId", ticket.ticketId)
+                    .putString("userId", ticket.userId)
                     .putString("type", "PRE_BOOKING")
                     .build()
 
@@ -51,6 +52,7 @@ object NotificationScheduler {
             if (delay > 0) {
                 val data = Data.Builder()
                     .putString("ticketId", ticket.ticketId)
+                    .putString("userId", ticket.userId)
                     .putString("type", "POST_BOOKING")
                     .build()
 

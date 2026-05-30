@@ -53,9 +53,8 @@ fun LoginScreen(
     val sharedPrefs = remember { context.getSharedPreferences("parking_prefs", Context.MODE_PRIVATE) }
     
     var loginType by remember { mutableStateOf<LoginMethod?>(null) }
-    var email by remember { mutableStateOf(sharedPrefs.getString("saved_email", "") ?: "") }
-    var password by remember { mutableStateOf(sharedPrefs.getString("saved_password", "") ?: "") }
-    var rememberMe by remember { mutableStateOf(sharedPrefs.getBoolean("remember_me", false)) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     
@@ -99,14 +98,6 @@ fun LoginScreen(
                     
                     if (firebaseUser != null) {
                         Log.d("Auth", "Firebase auth success: ${firebaseUser.uid}")
-                        sharedPrefs.edit().apply {
-                            putBoolean("remember_me", rememberMe)
-                            if (rememberMe) {
-                                putString("saved_google_email", gEmail)
-                            } else {
-                                remove("saved_google_email")
-                            }
-                        }.apply()
 
                         val existingUser = repository.getUserByEmail(gEmail)
                         if (existingUser == null) {
@@ -210,7 +201,7 @@ fun LoginScreen(
                             textAlign = TextAlign.Center
                         )
                         
-                        Spacer(modifier = Modifier.height(40.dp))
+                        Spacer(modifier = Modifier.height(32.dp))
 
                         LoginActionButton(
                             text = "Đăng nhập bằng mail VNU",
@@ -305,25 +296,8 @@ fun LoginScreen(
                             icon = Icons.Default.Lock,
                             isPass = true
                         )
-                        
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = rememberMe,
-                                onCheckedChange = { rememberMe = it },
-                                colors = CheckboxDefaults.colors(checkedColor = PrimaryBlue)
-                            )
-                            Text(
-                                "Ghi nhớ đăng nhập",
-                                fontSize = 14.sp,
-                                color = OnSecondaryContainer,
-                                modifier = Modifier.clickable { rememberMe = !rememberMe }
-                            )
-                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // Move "Quên mật khẩu" before Login Button
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
@@ -353,18 +327,13 @@ fun LoginScreen(
                                     try {
                                         val user = repository.getUserByEmail(trimmedEmail)
                                         if (user != null && user.password == password) {
-                                            // Lưu trạng thái ghi nhớ đăng nhập và thông tin tài khoản
+                                            // LƯU PHIÊN ĐĂNG NHẬP VÀO MÁY
                                             sharedPrefs.edit().apply {
-                                                putBoolean("remember_me", rememberMe)
-                                                if (rememberMe) {
-                                                    putString("saved_email", trimmedEmail)
-                                                    putString("saved_password", password)
-                                                } else {
-                                                    remove("saved_email")
-                                                    remove("saved_password")
-                                                }
-                                            }.apply()
-                                            
+                                                putString("logged_in_user_id", user.userId)
+                                                putString("user_role", user.role.name)
+                                                apply()
+                                            }
+
                                             Toast.makeText(context, "Đăng nhập thành công", Toast.LENGTH_SHORT).show()
                                             onLoginSuccess(user.userId ?: "", user.role)
                                         } else {
