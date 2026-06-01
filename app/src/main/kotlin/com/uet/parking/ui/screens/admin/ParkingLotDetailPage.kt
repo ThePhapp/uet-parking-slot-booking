@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -83,7 +85,6 @@ fun ParkingLotDetailPage(
         colors = listOf(PrimaryBlue, PrimaryContainer)
     )
 
-    // Đã xóa Scaffold và TopAppBar vì MainActivity đã cung cấp AppTopBar
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -132,17 +133,37 @@ fun ParkingLotDetailPage(
             }
 
             item {
+                // Căn chỉnh 2 cột có độ cao bằng nhau bằng IntrinsicSize.Min
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    WorkloadGaugeCard(lot!!, modifier = Modifier.weight(1.4f))
+                    WorkloadGaugeCard(
+                        lot = lot!!,
+                        modifier = Modifier
+                            .weight(1.4f)
+                            .fillMaxHeight()
+                    )
                     Column(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        ShiftStatsCard(inCount = nextShiftLoad)
-                        StatusGradientCard(primaryGradient)
+                        ShiftStatsCard(
+                            inCount = nextShiftLoad,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                        )
+                        StatusGradientCard(
+                            gradient = primaryGradient,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                        )
                     }
                 }
             }
@@ -181,24 +202,42 @@ fun AdminScanActionsCard(onScanCheckIn: () -> Unit, onScanCheckOut: () -> Unit) 
             ) {
                 Button(
                     onClick = onScanCheckIn,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Quét vào", fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(2.dp))
+                    Text(
+                        "Quét vào",
+                        fontSize = 11.sp, // Giảm font size
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
 
                 Button(
                     onClick = onScanCheckOut,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBA1A1A))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF57C00)),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    Icon(Icons.Default.Logout, null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Quét ra", fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.QrCode, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(2.dp))
+                    Text(
+                        "Quét ra",
+                        fontSize = 11.sp, // Giảm font size
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }
@@ -215,7 +254,8 @@ fun WorkloadGaugeCard(lot: ParkingLot, modifier: Modifier = Modifier) {
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 "TẢI LƯỢNG HIỆN TẠI",
@@ -275,13 +315,17 @@ fun WorkloadGaugeCard(lot: ParkingLot, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ShiftStatsCard(inCount: Int = 0, outCount: Int = 0) {
+fun ShiftStatsCard(modifier: Modifier = Modifier, inCount: Int = 0, outCount: Int = 0) {
     Card(
+        modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxHeight(),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text("CA TIẾP THEO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -290,25 +334,36 @@ fun ShiftStatsCard(inCount: Int = 0, outCount: Int = 0) {
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(16.dp), tint = Color(0xFFBA1A1A))
-                Text("-$outCount", fontWeight = FontWeight.Black, color = Color(0xFFBA1A1A))
+                Icon(Icons.Default.ArrowUpward, null, modifier = Modifier.size(16.dp), tint = Color(0xFFF57C00))
+                Text("-$outCount", fontWeight = FontWeight.Black, color = Color(0xFFF57C00))
             }
         }
     }
 }
 
 @Composable
-fun StatusGradientCard(gradient: Brush) {
+fun StatusGradientCard(modifier: Modifier = Modifier, gradient: Brush) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(gradient)
-            .padding(16.dp)
+            .background(gradient),
+        contentAlignment = Alignment.Center // Căn giữa nội dung trong Box theo cả 2 chiều
     ) {
-        Column {
-            Text("TRẠNG THÁI", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(0.7f))
-            Text("Ổn định", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) { // Căn giữa Text trong Column
+            Text(
+                "TRẠNG THÁI",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(0.7f),
+                textAlign = TextAlign.Center
+            )
+            Text(
+                "Ổn định",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
