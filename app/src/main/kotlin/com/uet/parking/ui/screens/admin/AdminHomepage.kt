@@ -66,6 +66,7 @@ fun AdminHomepage(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showManageDialog by remember { mutableStateOf(false) }
+    var showNotificationDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
@@ -98,7 +99,8 @@ fun AdminHomepage(
                         }
                     },
                     onExternalBookingClick = { showCreateDialog = true },
-                    onManageExternalClick = { showManageDialog = true }
+                    onManageExternalClick = { showManageDialog = true },
+                    onGlobalNotificationClick = { showNotificationDialog = true }
                 )
             }
 
@@ -136,6 +138,16 @@ fun AdminHomepage(
                 onDelete = { ticket -> viewModel.deleteExternalTicket(ticket) }
             )
         }
+
+        if (showNotificationDialog) {
+            SendGlobalNotificationDialog(
+                onDismiss = { showNotificationDialog = false },
+                onSend = { title, message, type ->
+                    viewModel.sendGlobalNotification(title, message, type)
+                    showNotificationDialog = false
+                }
+            )
+        }
     }
 }
 
@@ -143,7 +155,8 @@ fun AdminHomepage(
 fun QuickActionsCard(
     onManageLotClick: () -> Unit,
     onExternalBookingClick: () -> Unit,
-    onManageExternalClick: () -> Unit
+    onManageExternalClick: () -> Unit,
+    onGlobalNotificationClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -183,10 +196,10 @@ fun QuickActionsCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 QuickActionButton(
-                    icon = Icons.Default.BarChart,
-                    label = "Thống kê",
+                    icon = Icons.Default.NotificationsActive,
+                    label = "Gửi thông báo",
                     modifier = Modifier.weight(1f),
-                    isPlaceholder = true
+                    onClick = onGlobalNotificationClick
                 )
                 QuickActionButton(
                     icon = Icons.AutoMirrored.Filled.ListAlt,
@@ -427,5 +440,62 @@ fun ParkingLotCard(lot: ParkingLot, onDetailClick: (String) -> Unit) {
                 Text("Xem", fontWeight = FontWeight.Bold, fontSize = 10.sp)
             }
         }
+    }
+}
+
+@Composable
+fun SendGlobalNotificationDialog(onDismiss: () -> Unit, onSend: (String, String, String) -> Unit) {
+    var title by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    val type by remember { mutableStateOf("INFO") }
+    var showConfirm by remember { mutableStateOf(false) }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            title = { Text("Xác nhận gửi", fontWeight = FontWeight.Bold) },
+            text = { Text("Bạn có chắc muốn gửi thông báo này đến tất cả tài khoản không?") },
+            confirmButton = {
+                Button(onClick = {
+                    showConfirm = false
+                    onSend(title, message, type)
+                }) { Text("Gửi") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) { Text("Hủy") }
+            }
+        )
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Gửi thông báo toàn cục", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Tiêu đề") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = message,
+                        onValueChange = { message = it },
+                        label = { Text("Nội dung") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showConfirm = true },
+                    enabled = title.isNotBlank() && message.isNotBlank()
+                ) { Text("Tiếp tục") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text("Hủy") }
+            }
+        )
     }
 }

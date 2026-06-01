@@ -23,7 +23,12 @@ class NotificationViewModel(private val repository: ParkingRepository) : ViewMod
     fun loadNotifications(userId: String) {
         currentUserId = userId
         viewModelScope.launch {
-            repository.getNotificationsForUser(userId).collect { list ->
+            kotlinx.coroutines.flow.combine(
+                repository.getNotificationsForUser(userId),
+                repository.getGlobalNotifications()
+            ) { userNotifs, globalNotifs ->
+                (userNotifs + globalNotifs).sortedByDescending { it.timestamp }
+            }.collect { list ->
                 _notifications.value = list
                 _unreadCount.value = list.count { !it.isRead }
             }
