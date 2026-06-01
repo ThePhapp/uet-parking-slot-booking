@@ -79,6 +79,11 @@ fun MainNavigation(activityContext: ComponentActivity) {
     var userRole by rememberSaveable { mutableStateOf<UserRole?>(null) }
     var currentUserId by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // Admin profile state to get parkingLotId
+    val adminProfileState = remember(currentUserId) {
+        if (currentUserId != null) repository.getAdminWithProfile(currentUserId!!) else null
+    }?.collectAsState(initial = null)
+
     val handleLogout = {
         FirebaseAuth.getInstance().signOut()
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -207,6 +212,12 @@ fun MainNavigation(activityContext: ComponentActivity) {
                         navController.navigate(target) {
                             val popUpTarget = if (isAdmin) Screen.ADMIN_HOME.route else Screen.HOME.route
                             popUpTo(popUpTarget) { inclusive = (target == popUpTarget) }
+                        }
+                    },
+                    onAdminQrClick = { mode ->
+                        val parkingLotId = adminProfileState?.value?.adminInfo?.parkingLotId
+                        if (parkingLotId != null) {
+                            navController.navigate("admin_qr_scan/$parkingLotId/$mode")
                         }
                     }
                 )
