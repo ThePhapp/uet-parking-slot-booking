@@ -48,9 +48,10 @@ fun ParkingLotDetailPage(
     val context = LocalContext.current
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
+    val slotRepository = remember { com.uet.parking.data.repository.SlotRepository(firestore) }
 
     val viewModel: ParkingLotDetailViewModel = viewModel(
-        factory = ParkingLotDetailViewModelFactory(repository, lotId, adminId)
+        factory = ParkingLotDetailViewModelFactory(repository, slotRepository, lotId, adminId)
     )
 
     val lot by viewModel.lot.collectAsState()
