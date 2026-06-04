@@ -108,6 +108,18 @@ class BookingViewModel(
     private val _bookingUiState = MutableStateFlow(BookingUiState())
     val bookingUiState: StateFlow<BookingUiState> = _bookingUiState.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refreshData() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            // Dữ liệu Flow từ repository sẽ tự động cập nhật
+            kotlinx.coroutines.delay(1000)
+            _isRefreshing.value = false
+        }
+    }
+
     // Lấy vé của người dùng hiện tại
     val userTickets: StateFlow<List<Ticket>> = repository.getAllTickets()
         .map { tickets -> tickets.filter { it.userId == userId } }
@@ -239,6 +251,7 @@ class BookingViewModel(
                 }
 
                 val fullTicket = ticket.copy(ticketId = newTicketId)
+                com.uet.parking.utils.NotificationHelper.showBookingSuccess(context, newTicketId, userId)
                 com.uet.parking.utils.NotificationScheduler.schedulePreBookingNotification(context, fullTicket)
                 com.uet.parking.utils.NotificationScheduler.schedulePostBookingNotification(context, fullTicket)
 
@@ -387,6 +400,8 @@ class BookingViewModel(
                     val newTicketId = repository.createTicket(ticket)
                     val fullTicket = ticket.copy(ticketId = newTicketId)
                     
+                    com.uet.parking.utils.NotificationHelper.showBookingSuccess(context, newTicketId, userId)
+
                     val currentLoad = repository.getLoad(selectedLotId, scheduleDateStr, shift)
                     if (currentLoad == null) {
                         repository.updateHourlyLoad(HourlyLoad(null, selectedLotId, scheduleDateStr, shift, 1))

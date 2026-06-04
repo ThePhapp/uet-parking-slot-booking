@@ -29,30 +29,49 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingFormScreen(
     viewModel: BookingViewModel,
     onContinue: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
     val uiState by viewModel.bookingUiState.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val startSlots by viewModel.startTimeSlots.collectAsState()
     val endSlots by viewModel.endTimeSlots.collectAsState()
 
-    BoxWithConstraints(
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            pullToRefreshState.startRefresh()
+        } else {
+            pullToRefreshState.endRefresh()
+        }
+    }
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.refreshData()
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundGray)
+            .nestedScroll(pullToRefreshState.nestedScrollConnection)
     ) {
-        val width = this.maxWidth
-        val horizontalPadding = if (width > 1000.dp) (width - 1000.dp) / 2 + 24.dp else 16.dp
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(BackgroundGray)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = horizontalPadding)
         ) {
+            // ... rest of the content (we need to be careful with the padding here)
             // Progress Section
             Column(
                 modifier = Modifier
@@ -156,6 +175,11 @@ fun BookingFormScreen(
             
             Spacer(Modifier.height(40.dp))
         }
+
+        PullToRefreshContainer(
+            modifier = Modifier.align(Alignment.TopCenter),
+            state = pullToRefreshState,
+        )
 
         uiState.autoBookingResult?.let { result ->
             AlertDialog(

@@ -1,7 +1,7 @@
 package com.uet.parking.ui.screens.settings
 
-import android.annotation.SuppressLint
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,30 +10,37 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.widget.Toast
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.google.firebase.firestore.FirebaseFirestore
-import androidx.compose.ui.platform.LocalUriHandler
 import com.uet.parking.data.model.User
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
+import com.uet.parking.ui.viewmodel.SettingsViewModel
+import com.uet.parking.ui.viewmodel.ViewModelFactory
 import kotlinx.coroutines.launch
-
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 
 @Composable
 fun ChangePasswordDialog(
@@ -43,7 +50,7 @@ fun ChangePasswordDialog(
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
     var isProcessing by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -53,7 +60,7 @@ fun ChangePasswordDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = oldPassword,
-                    onValueChange = { oldPassword = it; error = null },
+                    onValueChange = { oldPassword = it; errorMsg = null },
                     label = { Text("Mật khẩu cũ") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -63,7 +70,7 @@ fun ChangePasswordDialog(
                 )
                 OutlinedTextField(
                     value = newPassword,
-                    onValueChange = { newPassword = it; error = null },
+                    onValueChange = { newPassword = it; errorMsg = null },
                     label = { Text("Mật khẩu mới") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -73,7 +80,7 @@ fun ChangePasswordDialog(
                 )
                 OutlinedTextField(
                     value = confirmPassword,
-                    onValueChange = { confirmPassword = it; error = null },
+                    onValueChange = { confirmPassword = it; errorMsg = null },
                     label = { Text("Xác nhận mật khẩu mới") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -81,26 +88,31 @@ fun ChangePasswordDialog(
                     singleLine = true,
                     enabled = !isProcessing
                 )
-                if (error != null) {
-                    Text(error!!, color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                errorMsg?.let {
+                    Text(it, color = Color.Red, style = MaterialTheme.typography.labelSmall)
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (oldPassword.isBlank() || newPassword.isBlank()) {
-                        error = "Vui lòng nhập đầy đủ thông tin"
-                    } else if (newPassword != confirmPassword) {
-                        error = "Mật khẩu xác nhận không khớp"
-                    } else if (newPassword.length < 6) {
-                        error = "Mật khẩu phải ít nhất 6 ký tự"
-                    } else {
-                        isProcessing = true
-                        onConfirm(oldPassword, newPassword) { resultError ->
-                            isProcessing = false
-                            if (resultError != null) {
-                                error = resultError
+                    when {
+                        oldPassword.isBlank() || newPassword.isBlank() -> {
+                            errorMsg = "Vui lòng nhập đầy đủ thông tin"
+                        }
+                        newPassword != confirmPassword -> {
+                            errorMsg = "Mật khẩu xác nhận không khớp"
+                        }
+                        newPassword.length < 6 -> {
+                            errorMsg = "Mật khẩu phải ít nhất 6 ký tự"
+                        }
+                        else -> {
+                            isProcessing = true
+                            onConfirm(oldPassword, newPassword) { resultError ->
+                                isProcessing = false
+                                if (resultError != null) {
+                                    errorMsg = resultError
+                                }
                             }
                         }
                     }
@@ -123,8 +135,7 @@ fun ChangePasswordDialog(
     )
 }
 
-
-@SuppressLint("UnusedBoxWithConstraintsScope")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     userId: String,
@@ -134,35 +145,51 @@ fun SettingsScreen(
 ) {
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
+    val viewModel: SettingsViewModel = viewModel(
+        factory = ViewModelFactory(repository, userId)
+    )
+    val userProfile by viewModel.userProfile.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     
     val context = LocalContext.current
     val sharedPrefs = remember { context.getSharedPreferences("parking_prefs", Context.MODE_PRIVATE) }
-    var user by remember { mutableStateOf<User?>(null) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var notificationsEnabled by remember { 
         mutableStateOf(sharedPrefs.getBoolean("notifications_enabled", true)) 
     }
-    
-    LaunchedEffect(userId) {
-        user = repository.getUserByIdSuspend(userId)
+
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            pullToRefreshState.startRefresh()
+        } else {
+            pullToRefreshState.endRefresh()
+        }
+    }
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.refreshData()
+        }
     }
 
     if (showChangePasswordDialog) {
         ChangePasswordDialog(
             onDismiss = { showChangePasswordDialog = false },
             onConfirm = { oldPass, newPass, onResult ->
+                val user = userProfile?.user
                 if (user == null) {
                     onResult("Dữ liệu người dùng chưa tải xong")
                     return@ChangePasswordDialog
                 }
                 scope.launch {
                     try {
-                        if (user?.password == oldPass) {
+                        if (user.password == oldPass) {
                             repository.updatePassword(userId, newPass)
-                            // Cập nhật lại user cục bộ để khớp với pass mới trong DB
-                            user = user?.copy(password = newPass)
                             Toast.makeText(context, "Đổi mật khẩu thành công!", Toast.LENGTH_SHORT).show()
                             onResult(null)
                             showChangePasswordDialog = false
@@ -177,13 +204,15 @@ fun SettingsScreen(
         )
     }
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(pullToRefreshState.nestedScrollConnection)
             .background(BackgroundGray)
     ) {
-        val maxWidth = maxWidth
-        val horizontalPadding = if (maxWidth > 800.dp) (maxWidth - 800.dp) / 2 + 24.dp else 24.dp
+        val configuration = LocalConfiguration.current
+        val screenWidth = configuration.screenWidthDp.dp
+        val horizontalPadding = if (screenWidth > 800.dp) (screenWidth - 800.dp) / 2 + 24.dp else 24.dp
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -195,7 +224,7 @@ fun SettingsScreen(
 
             // Profile Section
             item {
-                ProfileSection(user, onEditProfileClick)
+                ProfileSection(userProfile?.user, onEditProfileClick)
             }
 
             // Settings Groups
@@ -237,13 +266,13 @@ fun SettingsScreen(
 
                     SettingsGroupCard {
                         SettingsItem(
-                            icon = Icons.Default.Help,
+                            icon = Icons.AutoMirrored.Filled.Help,
                             title = "Trung tâm trợ giúp",
-                            trailing = { Icon(Icons.Default.OpenInNew, null, tint = Color.Gray) },
+                            trailing = { Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = Color.Gray) },
                             onClick = { uriHandler.openUri("https://uet.vnu.edu.vn/") }
                         )
                         SettingsItem(
-                            icon = Icons.Default.Logout,
+                            icon = Icons.AutoMirrored.Filled.Logout,
                             title = "Đăng xuất",
                             titleColor = Color(0xFFBA1A1A),
                             showChevron = false,
@@ -266,6 +295,11 @@ fun SettingsScreen(
             
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
+
+        PullToRefreshContainer(
+            modifier = Modifier.align(Alignment.TopCenter),
+            state = pullToRefreshState,
+        )
     }
 }
 
@@ -289,7 +323,6 @@ fun ProfileSection(user: User?, onEditClick: () -> Unit = {}) {
                     .background(Color(0xFFF0F2F5)),
                 contentAlignment = Alignment.Center
             ) {
-                // Hiển thị Avatar (sử dụng ảnh mặc định nếu chưa có URL)
                 AsyncImage(
                     model = "https://ui-avatars.com/api/?name=${user?.name ?: "U"}&background=0D47A1&color=fff&size=128",
                     contentDescription = "Avatar",

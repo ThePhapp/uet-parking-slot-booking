@@ -21,9 +21,12 @@ import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.asImageBitmap
@@ -39,10 +42,14 @@ import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.viewmodel.BookingViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TicketScreen(viewModel: BookingViewModel) {
     val context = LocalContext.current
     val tickets by viewModel.userTickets.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    
+    val pullToRefreshState = rememberPullToRefreshState()
     
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
@@ -52,13 +59,36 @@ fun TicketScreen(viewModel: BookingViewModel) {
 
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            pullToRefreshState.startRefresh()
+        } else {
+            pullToRefreshState.endRefresh()
+        }
+    }
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.refreshData()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundGray)
+            .nestedScroll(pullToRefreshState.nestedScrollConnection)
     ) {
         if (tickets.isEmpty()) {
-            EmptyTicketsView()
+            // Bao bọc EmptyView trong LazyColumn hoặc Box có khả năng scroll để PullToRefresh hoạt động
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                item { EmptyTicketsView() }
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -92,6 +122,11 @@ fun TicketScreen(viewModel: BookingViewModel) {
                 }
             }
         }
+
+        PullToRefreshContainer(
+            modifier = Modifier.align(Alignment.TopCenter),
+            state = pullToRefreshState,
+        )
 
         if (showDeleteDialog) {
             AlertDialog(

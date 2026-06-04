@@ -21,16 +21,14 @@ class ParkingRepository(
     private val hourlyLoadsCollection = firestore.collection("hourlyLoads")
     private val notificationsCollection = firestore.collection("notifications")
 
-    // --- Notifications ---
     fun getNotificationsForUser(userId: String): Flow<List<Notification>> {
         return notificationsCollection
             .whereEqualTo("userId", userId)
-            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { doc ->
                     doc.toObject(Notification::class.java)?.copy(notificationId = doc.id)
-                }
+                }.sortedByDescending { it.timestamp }
             }
     }
 
@@ -43,16 +41,43 @@ class ParkingRepository(
     }
 
     suspend fun markAllNotificationsAsRead(userId: String) {
-        val unread = notificationsCollection
+        val unreadUser = notificationsCollection
             .whereEqualTo("userId", userId)
             .whereEqualTo("isRead", false)
             .get().await()
+
+        val unreadGlobal = notificationsCollection
+            .whereEqualTo("isGlobal", true)
+            .whereEqualTo("isRead", false)
+            .get().await()
         
-        firestore.runBatch { batch ->
-            unread.documents.forEach { doc ->
-                batch.update(doc.reference, "isRead", true)
-            }
-        }.await()
+        val allUnread = unreadUser.documents + unreadGlobal.documents
+        if (allUnread.isEmpty()) return
+
+        // Chia nhỏ thành các batch 500 bản ghi để tránh giới hạn của Firestore
+        allUnread.chunked(500).forEach { chunk ->
+            firestore.runBatch { batch ->
+                chunk.forEach { doc ->
+                    batch.update(doc.reference, "isRead", true)
+                }
+            }.await()
+        }
+    }
+
+    fun getUnreadCount(userId: String): Flow<Int> {
+        val userUnread = notificationsCollection
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("isRead", false)
+            .snapshots()
+            .map { it.size() }
+
+        val globalUnread = notificationsCollection
+            .whereEqualTo("isGlobal", true)
+            .whereEqualTo("isRead", false)
+            .snapshots()
+            .map { it.size() }
+
+        return userUnread.combine(globalUnread) { user, global -> user + global }
     }
 
     // --- User ---

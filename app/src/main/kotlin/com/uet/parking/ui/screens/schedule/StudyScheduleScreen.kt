@@ -29,6 +29,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.runtime.LaunchedEffect
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudyScheduleScreen(
     userId: String,
@@ -37,48 +42,76 @@ fun StudyScheduleScreen(
     )
 ) {
     val schedules by viewModel.schedules.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var selectedSchedule by remember { mutableStateOf<StudySchedule?>(null) }
 
-    Column(
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            pullToRefreshState.startRefresh()
+        } else {
+            pullToRefreshState.endRefresh()
+        }
+    }
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.refreshData()
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFD))
-            .padding(12.dp)
+            .nestedScroll(pullToRefreshState.nestedScrollConnection)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF8FAFD))
+                .padding(12.dp)
         ) {
-            Column {
-                Text(
-                    text = "Lịch học tuần",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Lịch học tuần",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
 
+                }
+
+                Button(onClick = { showDialog = true }) {
+                    Text("+ Tạo lịch")
+                }
             }
 
-            Button(onClick = { showDialog = true }) {
-                Text("+ Tạo lịch")
-            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            WeeklyCalendarGrid(
+                schedules = schedules,
+                onScheduleClick = { schedule ->
+                    selectedSchedule = schedule
+                },
+                onEmptyClick = {
+                    selectedSchedule = null
+                }
+            )
+
+
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        WeeklyCalendarGrid(
-            schedules = schedules,
-            onScheduleClick = { schedule ->
-                selectedSchedule = schedule
-            },
-            onEmptyClick = {
-                selectedSchedule = null
-            }
+        PullToRefreshContainer(
+            modifier = Modifier.align(Alignment.TopCenter),
+            state = pullToRefreshState,
         )
-
-
     }
 
     if (showDialog) {
