@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -53,11 +55,21 @@ fun TicketScreen(viewModel: BookingViewModel) {
     
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
+    val slotRepository = remember { com.uet.parking.data.repository.SlotRepository(firestore) }
     
     var showDeleteDialog by remember { mutableStateOf(false) }
     var ticketToDelete by remember { mutableStateOf<Ticket?>(null) }
+    var navigateToSlot by remember { mutableStateOf<com.uet.parking.data.model.Slot?>(null) }
 
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+
+    if (navigateToSlot != null) {
+        NavigationScreen(
+            slot = navigateToSlot!!,
+            onBack = { navigateToSlot = null }
+        )
+        return
+    }
 
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
@@ -109,6 +121,7 @@ fun TicketScreen(viewModel: BookingViewModel) {
                     TicketItem(
                         ticket = ticket,
                         parkingLot = parkingLot,
+                        slotRepository = slotRepository,
                         onCopyCode = {
                             val clip = ClipData.newPlainText("Ticket Code", ticketCode)
                             clipboardManager.setPrimaryClip(clip)
@@ -117,6 +130,9 @@ fun TicketScreen(viewModel: BookingViewModel) {
                         onDeleteClick = {
                             ticketToDelete = ticket
                             showDeleteDialog = true
+                        },
+                        onNavigateClick = { slot ->
+                            navigateToSlot = slot
                         }
                     )
                 }
@@ -163,11 +179,20 @@ fun TicketScreen(viewModel: BookingViewModel) {
 fun TicketItem(
     ticket: Ticket, 
     parkingLot: ParkingLot?, 
+    slotRepository: com.uet.parking.data.repository.SlotRepository,
     onCopyCode: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onNavigateClick: (com.uet.parking.data.model.Slot) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var assignedSlot by remember { mutableStateOf<com.uet.parking.data.model.Slot?>(null) }
     val canDelete = ticket.status != TicketStatus.IN_PROGRESS
+
+    LaunchedEffect(ticket.assignedSlotId) {
+        ticket.assignedSlotId?.let { id ->
+            assignedSlot = slotRepository.getSlotById(id)
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -287,6 +312,41 @@ fun TicketItem(
                                 fontSize = 12.sp,
                                 color = Color.Gray,
                                 fontWeight = FontWeight.Medium
+                            )
+                        }
+                        
+                        // Slot & Navigation
+                        if (assignedSlot != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Map, null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Vị trí được gán: ${assignedSlot?.coordinateLabel}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = Color.DarkGray
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { onNavigateClick(assignedSlot!!) },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            ) {
+                                Icon(Icons.Default.Directions, null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Dẫn đường tới Slot")
+                            }
+                        } else if (ticket.status == TicketStatus.IN_PROGRESS) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Vé chưa được gán vị trí (Không tìm thấy slot)",
+                                color = Color(0xFFEF6C00),
+                                fontSize = 13.sp
                             )
                         }
                     }

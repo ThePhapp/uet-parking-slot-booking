@@ -8,6 +8,8 @@ import com.uet.parking.data.repository.ParkingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -19,6 +21,9 @@ class ParkingLotDetailViewModel(
     private val adminId: String
 ) : ViewModel() {
 
+    private val _scanResult = MutableSharedFlow<ScanResult>()
+    val scanResult = _scanResult.asSharedFlow()
+
     private val _lot = MutableStateFlow<ParkingLot?>(null)
     val lot = _lot.asStateFlow()
 
@@ -28,11 +33,8 @@ class ParkingLotDetailViewModel(
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage = _toastMessage.asStateFlow()
 
-    data class ScanResult(val success: Boolean, val message: String, val slot: com.uet.parking.data.model.Slot? = null)
-    private val _scanResult = MutableStateFlow<ScanResult?>(null)
-    val scanResult = _scanResult.asStateFlow()
-
     init {
+        initMockSlots() // Auto-init mock slots
         refreshLotData()
         loadNextShiftStats()
     }
@@ -83,21 +85,21 @@ class ParkingLotDetailViewModel(
                 return@launch
             }
 
-            val capacity = currentLot?.capacity ?: 0
-            val assignedSlot = slotRepository.assignSlotToTicket(lotId, ticketId, ticket.userId, capacity)
-            
+            val assignedSlot = slotRepository.assignSlotToTicket(lotId, ticketId, ticket.userId)
             if (assignedSlot == null) {
-                _scanResult.value = ScanResult(false, "Bãi hiện đã đạt tối đa sức chứa, không còn slot trống.")
+                _toastMessage.value = "Không còn vị trí đỗ trống!"
                 return@launch
             }
 
+            repository.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.value)
             repository.updateCurrentOccupancy(lotId, (currentLot?.current ?: 0) + 1)
             repository.incrementKPI(adminId)
             android.util.Log.d("QR_SCAN_DEBUG", "👉 thành")
             
             com.uet.parking.utils.NotificationHelper.showCheckInSuccess(context, ticketId, ticket.userId)
             
-            _scanResult.value = ScanResult(true, "Quét vào thành công! Xe đã vào bãi.", assignedSlot)
+            _toastMessage.value = "Quét vào thành công! Xe đã vào bãi."
+            _scanResult.emit(ScanResult.Success(assignedSlot))
             refreshLotData()
         }
     }
@@ -133,7 +135,7 @@ class ParkingLotDetailViewModel(
                 }
             }
 
-            // 2. Giải phóng slot và cập nhật bãi
+            // 2. Xóa vé và cập nhật bãi
             slotRepository.releaseSlotFromTicket(ticketId)
             repository.incrementKPI(adminId)
             repository.deleteTicket(ticketId)
@@ -167,14 +169,13 @@ class ParkingLotDetailViewModel(
         _toastMessage.value = null
     }
 
-    fun clearScanResult() {
-        _scanResult.value = null
-    }
-
     fun initMockSlots() {
         viewModelScope.launch {
             slotRepository.initMockSlotsForLot(lotId)
-            _toastMessage.value = "Đã khởi tạo dữ liệu slot mẫu."
         }
     }
+}
+
+sealed class ScanResult {
+    data class Success(val slot: com.uet.parking.data.model.Slot) : ScanResult()
 }

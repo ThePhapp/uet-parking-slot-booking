@@ -11,7 +11,9 @@ data class Ticket(
     val status: TicketStatus? = TicketStatus.PENDING,
     val price: Double? = 0.0,
     val assignedSlotId: String? = null,
-    val checkedInAt: Long? = null
+    val checkedInAt: Long? = null,
+    val vehiclePlate: String? = null,
+    val vehicleType: String? = null
 ) {
-    constructor() : this(null, null, null, null, null, TicketStatus.PENDING, 0.0, null, null)
+    constructor() : this(null, null, null, null, null, TicketStatus.PENDING, 0.0, null, null, null, null)
 }

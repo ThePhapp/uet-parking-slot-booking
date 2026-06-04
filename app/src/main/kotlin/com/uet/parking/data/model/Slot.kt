@@ -1,17 +1,34 @@
 package com.uet.parking.data.model
 
 import com.uet.parking.data.model.enums.SlotStatus
+import java.util.UUID
 
 data class Slot(
-    val id: String? = null,
-    val parkingLotId: String? = null,
+    val id: String = UUID.randomUUID().toString(),
+    val parkingSlotId: String = "",
+    val parkingLotId: String = "",
     val userId: String? = null,
-    val coordinateX: Float? = null,
-    val coordinateY: Float? = null,
-    val coordinateLabel: String? = null,
-    val status: String? = SlotStatus.AVAILABLE.name,
-    val createdAt: Long? = null,
-    val updatedAt: Long? = null
+    val coordinateX: Double = 0.0,
+    val coordinateY: Double = 0.0,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val coordinateLabel: String = "",
+    val status: String = SlotStatus.AVAILABLE.value,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
 ) {
-    constructor() : this(null, null, null, null, null, null, SlotStatus.AVAILABLE.name, null, null)
+    constructor() : this(
+        id = UUID.randomUUID().toString(),
+        parkingSlotId = "",
+        parkingLotId = "",
+        userId = null,
+        coordinateX = 0.0,
+        coordinateY = 0.0,
+        latitude = null,
+        longitude = null,
+        coordinateLabel = "",
+        status = SlotStatus.AVAILABLE.value,
+        createdAt = System.currentTimeMillis(),
+        updatedAt = System.currentTimeMillis()
+    )
 }

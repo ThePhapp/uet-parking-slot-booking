@@ -1,9 +1,9 @@
 package com.uet.parking.data.repository
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.uet.parking.data.model.Slot
 import com.uet.parking.data.model.enums.SlotStatus
-import com.uet.parking.data.model.enums.TicketStatus
 import kotlinx.coroutines.tasks.await
 
 class SlotRepository(
@@ -12,159 +12,106 @@ class SlotRepository(
     private val slotsCollection = firestore.collection("slots")
     private val ticketsCollection = firestore.collection("tickets")
 
-    suspend fun getAvailableSlotByParkingLot(parkingLotId: String): Slot? {
-        val snapshot = slotsCollection
-            .whereEqualTo("parkingLotId", parkingLotId)
-            .whereEqualTo("status", SlotStatus.AVAILABLE.name)
-            .limit(1)
-            .get()
-            .await()
-            
-        return snapshot.documents.firstOrNull()?.let { doc ->
-            doc.toObject(Slot::class.java)?.copy(id = doc.id)
-        }
-    }
-
     suspend fun getSlotById(slotId: String): Slot? {
-        val doc = slotsCollection.document(slotId).get().await()
-        return doc.toObject(Slot::class.java)?.copy(id = doc.id)
+        if (slotId.isBlank()) return null
+        return try {
+            val doc = slotsCollection.document(slotId).get().await()
+            doc.toObject(Slot::class.java)?.copy(id = doc.id)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     suspend fun getSlotsByParkingLot(parkingLotId: String): List<Slot> {
-        val snapshot = slotsCollection
-            .whereEqualTo("parkingLotId", parkingLotId)
-            .get()
-            .await()
-        return snapshot.documents.mapNotNull { doc ->
-            doc.toObject(Slot::class.java)?.copy(id = doc.id)
+        return try {
+            val snapshot = slotsCollection
+                .whereEqualTo("parkingLotId", parkingLotId)
+                .get()
+                .await()
+            snapshot.documents.mapNotNull { it.toObject(Slot::class.java)?.copy(id = it.id) }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
-    suspend fun assignSlotToTicket(lotId: String, ticketId: String, userId: String?, capacity: Int): Slot? {
-        val availableSlotsSnapshot = slotsCollection
-            .whereEqualTo("parkingLotId", lotId)
-            .whereEqualTo("status", SlotStatus.AVAILABLE.name)
-            .get()
-            .await()
+    suspend fun initMockSlotsForLot(parkingLotId: String) {
+        val existing = getSlotsByParkingLot(parkingLotId)
+        if (existing.isNotEmpty()) return
 
-        if (!availableSlotsSnapshot.isEmpty) {
-            for (doc in availableSlotsSnapshot.documents) {
-                val slotRef = doc.reference
-                val ticketRef = ticketsCollection.document(ticketId)
+        val mocks = listOf(
+            Slot(parkingLotId = parkingLotId, coordinateLabel = "A1", latitude = 21.037001, longitude = 105.782001),
+            Slot(parkingLotId = parkingLotId, coordinateLabel = "A2", latitude = 21.037020, longitude = 105.782040),
+            Slot(parkingLotId = parkingLotId, coordinateLabel = "B1", latitude = 21.037060, longitude = 105.782080),
+            Slot(parkingLotId = parkingLotId, coordinateLabel = "B2", latitude = 21.037090, longitude = 105.782120)
+        )
 
-                try {
-                    val assignedSlot = firestore.runTransaction { transaction ->
-                        val slotSnapshot = transaction.get(slotRef)
-                        val status = slotSnapshot.getString("status")
-
-                        if (status == SlotStatus.AVAILABLE.name) {
-                            transaction.update(slotRef, "status", SlotStatus.OCCUPIED.name)
-                            transaction.update(slotRef, "userId", userId)
-                            transaction.update(slotRef, "updatedAt", System.currentTimeMillis())
-
-                            transaction.update(ticketRef, "assignedSlotId", doc.id)
-                            transaction.update(ticketRef, "status", TicketStatus.IN_PROGRESS.value)
-                            transaction.update(ticketRef, "checkedInAt", System.currentTimeMillis())
-
-                            slotSnapshot.toObject(Slot::class.java)?.copy(
-                                id = doc.id,
-                                status = SlotStatus.OCCUPIED.name,
-                                userId = userId
-                            )
-                        } else {
-                            null
-                        }
-                    }.await()
-
-                    if (assignedSlot != null) {
-                        return assignedSlot
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("SlotRepository", "Transaction failed for slot ${doc.id}", e)
-                }
+        firestore.runBatch { batch ->
+            mocks.forEach { slot ->
+                val ref = slotsCollection.document()
+                batch.set(ref, slot.copy(id = ref.id))
             }
-        }
-
-        // Nếu không có slot trống nào có sẵn, thử tạo slot mới nếu chưa đạt sức chứa (capacity)
-        val allSlotsSnapshot = slotsCollection.whereEqualTo("parkingLotId", lotId).get().await()
-        val totalSlots = allSlotsSnapshot.size()
-
-        if (totalSlots < capacity) {
-            val newSlotLabel = generateSlotLabel(totalSlots)
-            val newSlotRef = slotsCollection.document()
-
-            val newSlot = Slot(
-                id = newSlotRef.id,
-                parkingLotId = lotId,
-                userId = userId,
-                coordinateLabel = newSlotLabel,
-                status = SlotStatus.OCCUPIED.name,
-                createdAt = System.currentTimeMillis()
-            )
-
-            val ticketRef = ticketsCollection.document(ticketId)
-
-            firestore.runTransaction { transaction ->
-                transaction.set(newSlotRef, newSlot)
-                transaction.update(ticketRef, "assignedSlotId", newSlotRef.id)
-                transaction.update(ticketRef, "status", TicketStatus.IN_PROGRESS.value)
-                transaction.update(ticketRef, "checkedInAt", System.currentTimeMillis())
-            }.await()
-
-            return newSlot
-        }
-
-        return null
+        }.await()
     }
 
-    private fun generateSlotLabel(currentIndex: Int): String {
-        // Tạo label thông minh: 0-9 -> A1-A10, 10-19 -> B1-B10, v.v.
-        val rowChar = 'A' + (currentIndex / 10)
-        val colNum = (currentIndex % 10) + 1
-        return "$rowChar$colNum"
+    /**
+     * Gán vị trí cho vé qua Transaction để tránh đụng độ (Race condition).
+     */
+    suspend fun assignSlotToTicket(parkingLotId: String, ticketId: String, userId: String?): Slot? {
+        val availableSlotsSnapshot = slotsCollection
+            .whereEqualTo("parkingLotId", parkingLotId)
+            .whereEqualTo("status", SlotStatus.AVAILABLE.value)
+            .limit(1)
+            .get()
+            .await()
+
+        if (availableSlotsSnapshot.isEmpty) {
+            return null
+        }
+
+        val targetSlotDoc = availableSlotsSnapshot.documents.first()
+        val slotRef = slotsCollection.document(targetSlotDoc.id)
+        val ticketRef = ticketsCollection.document(ticketId)
+
+        return try {
+            firestore.runTransaction { transaction ->
+                val snapshot = transaction.get(slotRef)
+                val currentStatus = snapshot.getString("status")
+                
+                if (currentStatus != SlotStatus.AVAILABLE.value) {
+                    throw Exception("Slot đã được lấy bởi tiến trình khác.")
+                }
+
+                // Cập nhật Slot
+                transaction.update(slotRef, "status", SlotStatus.OCCUPIED.value)
+                transaction.update(slotRef, "userId", userId)
+
+                // Cập nhật Ticket
+                transaction.update(ticketRef, "assignedSlotId", slotRef.id)
+                transaction.update(ticketRef, "checkedInAt", System.currentTimeMillis())
+
+                snapshot.toObject(Slot::class.java)?.copy(
+                    id = slotRef.id,
+                    status = SlotStatus.OCCUPIED.value,
+                    userId = userId
+                )
+            }.await()
+        } catch (e: Exception) {
+            null
+        }
     }
 
     suspend fun releaseSlotFromTicket(ticketId: String) {
         val ticketDoc = ticketsCollection.document(ticketId).get().await()
         val assignedSlotId = ticketDoc.getString("assignedSlotId")
         
-        if (assignedSlotId != null) {
+        if (!assignedSlotId.isNullOrEmpty()) {
             val slotRef = slotsCollection.document(assignedSlotId)
             firestore.runTransaction { transaction ->
-                val slotSnapshot = transaction.get(slotRef)
-                val currentStatus = slotSnapshot.getString("status")
-                
-                if (currentStatus == SlotStatus.OCCUPIED.name) {
-                    transaction.update(slotRef, "status", SlotStatus.AVAILABLE.name)
-                    transaction.update(slotRef, "userId", null)
-                    transaction.update(slotRef, "updatedAt", System.currentTimeMillis())
-                }
-                
-                val ticketRef = ticketsCollection.document(ticketId)
-                transaction.update(ticketRef, "status", TicketStatus.DONE.value)
+                transaction.update(slotRef, "status", SlotStatus.AVAILABLE.value)
+                transaction.update(slotRef, "userId", null)
+                // Optionally clear from ticket
+                transaction.update(ticketsCollection.document(ticketId), "assignedSlotId", null)
             }.await()
-        } else {
-            val ticketRef = ticketsCollection.document(ticketId)
-            ticketRef.update("status", TicketStatus.DONE.value).await()
         }
-    }
-
-    suspend fun initMockSlotsForLot(parkingLotId: String) {
-        val existingSlots = getSlotsByParkingLot(parkingLotId)
-        if (existingSlots.isNotEmpty()) return
-
-        val mockSlots = listOf(
-            Slot(parkingLotId = parkingLotId, coordinateX = 10f, coordinateY = 20f, coordinateLabel = "A1"),
-            Slot(parkingLotId = parkingLotId, coordinateX = 20f, coordinateY = 20f, coordinateLabel = "A2"),
-            Slot(parkingLotId = parkingLotId, coordinateX = 10f, coordinateY = 40f, coordinateLabel = "B1"),
-            Slot(parkingLotId = parkingLotId, coordinateX = 20f, coordinateY = 40f, coordinateLabel = "B2")
-        )
-
-        val batch = firestore.batch()
-        mockSlots.forEach { slot ->
-            val ref = slotsCollection.document()
-            batch.set(ref, slot.copy(id = ref.id, createdAt = System.currentTimeMillis()))
-        }
-        batch.commit().await()
     }
 }
