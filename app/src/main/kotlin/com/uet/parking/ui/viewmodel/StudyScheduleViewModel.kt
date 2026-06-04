@@ -7,9 +7,9 @@ import com.uet.parking.data.model.StudySchedule
 import com.uet.parking.data.repository.StudyScheduleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 class StudyScheduleViewModel(
     private val userId: String
 ) : ViewModel() {
@@ -21,6 +21,18 @@ class StudyScheduleViewModel(
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refreshData() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            // Data will be automatically updated via Flow from repository
+            delay(1000)
+            _isRefreshing.value = false
+        }
+    }
 
     init {
         observeSchedules()

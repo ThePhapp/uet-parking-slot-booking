@@ -38,10 +38,18 @@ fun AppTopBar(
     notificationCount: Int = 0,
     notifications: List<Notification> = emptyList(),
     onNotificationClick: (String) -> Unit = {},
-    onMarkAllRead: () -> Unit = {}
+    onMarkAllRead: () -> Unit = {},
+    onNotificationMenuOpened: () -> Unit = {}
 ) {
     var userMenuExpanded by remember { mutableStateOf(false) }
     var notificationMenuExpanded by remember { mutableStateOf(false) }
+
+    // Theo dõi khi menu mở
+    LaunchedEffect(notificationMenuExpanded) {
+        if (notificationMenuExpanded) {
+            onNotificationMenuOpened()
+        }
+    }
 
     TopAppBar(
         title = {
@@ -70,122 +78,6 @@ fun AppTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 8.dp)
             ) {
-                // Notification Icon
-                Box {
-                    IconButton(
-                        onClick = { notificationMenuExpanded = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF0F2F5))
-                    ) {
-                        BadgedBox(
-                            badge = {
-                                if (hasNotification || notificationCount > 0) {
-                                    Badge(
-                                        containerColor = Color.Red,
-                                        contentColor = Color.White
-                                    ) {
-                                        if (notificationCount > 0) {
-                                            Text(notificationCount.toString())
-                                        }
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsNone,
-                                contentDescription = "Notifications",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = notificationMenuExpanded,
-                        onDismissRequest = { notificationMenuExpanded = false },
-                        modifier = Modifier
-                            .width(280.dp)
-                            .heightIn(max = 400.dp)
-                    ) {
-                        if (notifications.isEmpty()) {
-                            DropdownMenuItem(
-                                text = { Text("Không có thông báo nào", fontSize = 14.sp) },
-                                onClick = { notificationMenuExpanded = false },
-                                enabled = false
-                            )
-                        } else {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Thông báo", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Text(
-                                    "Đánh dấu tất cả là đã đọc",
-                                    fontSize = 12.sp,
-                                    color = PrimaryBlue,
-                                    modifier = Modifier.clickable { onMarkAllRead() }
-                                )
-                            }
-                            HorizontalDivider()
-                            
-                            notifications.take(10).forEach { notification ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(
-                                                notification.title,
-                                                fontWeight = if (notification.isRead) FontWeight.Normal else FontWeight.Bold,
-                                                fontSize = 14.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                notification.message,
-                                                fontSize = 12.sp,
-                                                color = Color.Gray,
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                DateUtils.formatTimestamp(notification.timestamp),
-                                                fontSize = 10.sp,
-                                                color = Color.LightGray
-                                            )
-                                        }
-                                    },
-                                    onClick = {
-                                        onNotificationClick(notification.notificationId)
-                                        notificationMenuExpanded = false
-                                    },
-                                    leadingIcon = {
-                                        val icon = when (notification.type) {
-                                            "SUCCESS" -> Icons.Default.CheckCircle
-                                            "WARNING" -> Icons.Default.Warning
-                                            "ERROR" -> Icons.Default.Error
-                                            else -> Icons.Default.Info
-                                        }
-                                        val color = when (notification.type) {
-                                            "SUCCESS" -> Color(0xFF4CAF50)
-                                            "WARNING" -> Color(0xFFFF9800)
-                                            "ERROR" -> Color(0xFFF44336)
-                                            else -> PrimaryBlue
-                                        }
-                                        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-                                    }
-                                )
-                                HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
                 // User Profile Icon
                 Box {
                     IconButton(onClick = { userMenuExpanded = true }) {

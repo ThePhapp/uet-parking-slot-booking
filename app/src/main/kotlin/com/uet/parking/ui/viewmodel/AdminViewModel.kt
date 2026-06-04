@@ -48,6 +48,18 @@ class AdminViewModel(
         else tickets.filter { it.parkingId == lotId && it.userId?.startsWith("EXTERNAL_GUEST_") == true }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refreshData() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            // Flow từ repository sẽ tự động cập nhật, ta chỉ giả lập delay cho UI
+            kotlinx.coroutines.delay(1000)
+            _isRefreshing.value = false
+        }
+    }
+
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage = _toastMessage.asStateFlow()
 

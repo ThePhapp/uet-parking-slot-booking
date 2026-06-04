@@ -90,12 +90,10 @@ fun MainNavigation(activityContext: ComponentActivity) {
     var currentUserId by rememberSaveable { mutableStateOf<String?>(null) }
     var isCheckingSession by remember { mutableStateOf(true) }
 
-    // Notification state management
+    // Notification state management (UI removed, keeping for system notifications if needed)
     val notificationViewModel: NotificationViewModel = viewModel(
         factory = ViewModelFactory(repository, currentUserId ?: "")
     )
-    val notifications by notificationViewModel.notifications.collectAsState()
-    val unreadCount by notificationViewModel.unreadCount
 
     LaunchedEffect(currentUserId) {
         currentUserId?.let {
@@ -120,6 +118,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
 
         currentUserId = null
         userRole = null
+        notificationViewModel.clear()
         navController.navigate(Screen.AUTH.route) {
             popUpTo(0) { inclusive = true }
         }
@@ -232,12 +231,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
                         val settingsRoute = if (isAdmin) Screen.ADMIN_SETTINGS.route else Screen.SETTINGS.route
                         navController.navigate(settingsRoute)
                     },
-                    onLogoutClick = handleLogout,
-                    hasNotification = unreadCount > 0,
-                    notificationCount = unreadCount,
-                    notifications = notifications,
-                    onNotificationClick = { notificationViewModel.markAsRead(it) },
-                    onMarkAllRead = { notificationViewModel.markAllAsRead() }
+                    onLogoutClick = handleLogout
                 )
             }
         },

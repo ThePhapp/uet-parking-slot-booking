@@ -19,12 +19,15 @@ import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,6 +44,7 @@ import com.uet.parking.ui.viewmodel.ViewModelFactory
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun AdminHomepage(
@@ -61,6 +65,9 @@ fun AdminHomepage(
     val availableSlots by viewModel.availableSlots.collectAsState()
     val externalTickets by viewModel.externalTickets.collectAsState()
     val toastMessage by viewModel.toastMessage.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    
+    val pullToRefreshState = rememberPullToRefreshState()
     
     val kpi = adminProfile?.adminInfo?.kpi ?: 0
 
@@ -74,7 +81,23 @@ fun AdminHomepage(
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundGray)) {
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) pullToRefreshState.startRefresh()
+        else pullToRefreshState.endRefresh()
+    }
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.refreshData()
+        }
+    }
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundGray)
+            .nestedScroll(pullToRefreshState.nestedScrollConnection)
+    ) {
         val width = maxWidth
         val columns = 3
         val horizontalPadding = if (width > 1200.dp) (width - 1200.dp) / 2 + 16.dp else 12.dp
@@ -118,6 +141,11 @@ fun AdminHomepage(
                 Spacer(modifier = Modifier.height(100.dp))
             }
         }
+
+        PullToRefreshContainer(
+            modifier = Modifier.align(Alignment.TopCenter),
+            state = pullToRefreshState,
+        )
 
         if (showCreateDialog) {
             CreateExternalTicketDialog(
