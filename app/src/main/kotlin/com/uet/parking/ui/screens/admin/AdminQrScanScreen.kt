@@ -57,48 +57,58 @@ fun AdminQrScanScreen(
 
     // Lắng nghe trạng thái thông báo từ ViewModel gửi về sau khi gọi Firebase
     val toastMessage by viewModel.toastMessage.collectAsState()
-    val scanResult by viewModel.scanResult.collectAsState()
+    
+    var showSuccessDialog by remember { mutableStateOf<com.uet.parking.ui.viewmodel.ScanResult.Success?>(null) }
 
-    // Chặn luồng phản hồi: Chỉ phản hồi quay lại khi ViewModel đã trả về thông điệp xử lý xong
-    LaunchedEffect(toastMessage) {
-        toastMessage?.let { msg ->
-            viewModel.clearToast()
-            onBackWithMessage(msg) // Truyền ngược thông điệp về màn hình trước và đóng camera
+    LaunchedEffect(viewModel) {
+        viewModel.scanResult.collect { result ->
+            when (result) {
+                is com.uet.parking.ui.viewmodel.ScanResult.Success -> {
+                    showSuccessDialog = result
+                }
+            }
         }
     }
 
-    if (scanResult != null) {
-        if (scanResult!!.success) {
-            AlertDialog(
-                onDismissRequest = {
-                    viewModel.clearScanResult()
-                    onBackWithMessage(scanResult!!.message)
-                },
-                title = { Text("Check-in thành công") },
-                text = {
-                    Column {
-                        Text("Slot được phân công: ${scanResult!!.slot?.coordinateLabel ?: "Không rõ"}", style = MaterialTheme.typography.titleMedium)
-                        Text("Tọa độ: X=${scanResult!!.slot?.coordinateX ?: 0f}, Y=${scanResult!!.slot?.coordinateY ?: 0f}")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Yêu cầu sinh viên để xe đúng slot này.", color = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = {
-                        viewModel.clearScanResult()
-                        onBackWithMessage(scanResult!!.message)
-                    }) {
-                        Text("Đồng ý")
-                    }
-                }
-            )
-        } else {
-            LaunchedEffect(scanResult) {
-                val msg = scanResult!!.message
-                viewModel.clearScanResult()
+    // Chặn luồng phản hồi: Chỉ phản hồi quay lại khi ViewModel đã trả về thông điệp xử lý xong (trừ lỗi cần đóng trước)
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let { msg ->
+            viewModel.clearToast()
+            // Chỉ thoát màn hình nếu là check-out thành công hoặc lỗi (Không còn slot).
+            // Với check-in thành công, ta chờ người dùng bấm nút ở popup showSuccessDialog.
+            if (!msg.contains("thành công") || mode == "checkout" || msg.contains("Không còn")) {
                 onBackWithMessage(msg)
             }
         }
+    }
+
+    if (showSuccessDialog != null) {
+        val slot = showSuccessDialog!!.slot
+        AlertDialog(
+            onDismissRequest = {
+                val msg = "Check-in thành công!"
+                showSuccessDialog = null
+                onBackWithMessage(msg)
+            },
+            title = { Text("Check-in thành công") },
+            text = {
+                Column {
+                    Text("Slot được phân công: ${slot.coordinateLabel}", style = MaterialTheme.typography.titleMedium)
+                    Text("Tọa độ: X=${slot.coordinateX}, Y=${slot.coordinateY}")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Yêu cầu sinh viên để xe đúng slot này.", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val msg = "Check-in thành công!"
+                    showSuccessDialog = null
+                    onBackWithMessage(msg)
+                }) {
+                    Text("Đồng ý")
+                }
+            }
+        )
     }
 
     var hasCameraPermission by remember {
