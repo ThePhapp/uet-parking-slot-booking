@@ -269,11 +269,12 @@ class ParkingRepository(
     fun getGlobalNotifications(): Flow<List<Notification>> {
         return notificationsCollection
             .whereEqualTo("isGlobal", true)
+            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { doc ->
                     doc.toObject(Notification::class.java)?.copy(notificationId = doc.id)
-                }.sortedByDescending { it.timestamp }
+                }
             }
     }
 }

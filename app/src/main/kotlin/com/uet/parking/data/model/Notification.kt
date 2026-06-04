@@ -9,5 +9,7 @@ data class Notification(
     val message: String = "",
     val timestamp: Timestamp = Timestamp.now(),
     val isRead: Boolean = false,
-    val type: String = "INFO" // INFO, SUCCESS, WARNING, ERROR
+    val type: String = "INFO", // INFO, SUCCESS, WARNING, ERROR
+    val isGlobal: Boolean = false,
+    val senderId: String? = null
 )

@@ -172,6 +172,29 @@ class AdminViewModel(
         }
     }
 
+    fun sendGlobalNotification(title: String, message: String, type: String) {
+        if (title.isBlank() || message.isBlank()) {
+            _toastMessage.value = "Tiêu đề và nội dung không được để trống"
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val notification = com.uet.parking.data.model.Notification(
+                    title = title,
+                    message = message,
+                    type = type,
+                    isGlobal = true,
+                    senderId = userId
+                )
+                repository.addNotification(notification)
+                _toastMessage.value = "Đã gửi thông báo toàn cục thành công"
+            } catch (e: Exception) {
+                _toastMessage.value = "Lỗi khi gửi thông báo: ${e.message}"
+            }
+        }
+    }
+
     private fun scheduleTicketCleanup(context: Context, ticketId: String, lotId: String, endTimeStr: String) {
         val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         val endTime = try { sdf.parse(endTimeStr) } catch (_: Exception) { null } ?: return

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,19 +49,55 @@ fun AdminQrScanScreen(
     val context = LocalContext.current
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
+    val slotRepository = remember { com.uet.parking.data.repository.SlotRepository(firestore) }
 
     val viewModel: ParkingLotDetailViewModel = viewModel(
-        factory = ParkingLotDetailViewModelFactory(repository, lotId, adminId)
+        factory = ParkingLotDetailViewModelFactory(repository, slotRepository, lotId, adminId)
     )
 
     // Lắng nghe trạng thái thông báo từ ViewModel gửi về sau khi gọi Firebase
     val toastMessage by viewModel.toastMessage.collectAsState()
+    val scanResult by viewModel.scanResult.collectAsState()
 
     // Chặn luồng phản hồi: Chỉ phản hồi quay lại khi ViewModel đã trả về thông điệp xử lý xong
     LaunchedEffect(toastMessage) {
         toastMessage?.let { msg ->
             viewModel.clearToast()
             onBackWithMessage(msg) // Truyền ngược thông điệp về màn hình trước và đóng camera
+        }
+    }
+
+    if (scanResult != null) {
+        if (scanResult!!.success) {
+            AlertDialog(
+                onDismissRequest = {
+                    viewModel.clearScanResult()
+                    onBackWithMessage(scanResult!!.message)
+                },
+                title = { Text("Check-in thành công") },
+                text = {
+                    Column {
+                        Text("Slot được phân công: ${scanResult!!.slot?.coordinateLabel ?: "Không rõ"}", style = MaterialTheme.typography.titleMedium)
+                        Text("Tọa độ: X=${scanResult!!.slot?.coordinateX ?: 0f}, Y=${scanResult!!.slot?.coordinateY ?: 0f}")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Yêu cầu sinh viên để xe đúng slot này.", color = MaterialTheme.colorScheme.primary)
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        viewModel.clearScanResult()
+                        onBackWithMessage(scanResult!!.message)
+                    }) {
+                        Text("Đồng ý")
+                    }
+                }
+            )
+        } else {
+            LaunchedEffect(scanResult) {
+                val msg = scanResult!!.message
+                viewModel.clearScanResult()
+                onBackWithMessage(msg)
+            }
         }
     }
 
@@ -93,7 +130,8 @@ fun AdminQrScanScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
             )
         }

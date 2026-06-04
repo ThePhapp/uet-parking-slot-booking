@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -121,54 +123,96 @@ fun AppBottomNavigationBar(
     selectedIndex: Int = 0,
     onItemSelected: (Int) -> Unit,
     isAdmin: Boolean = false,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    onAdminQrClick: (String) -> Unit = {}
 ) {
+    var showQrOptions by remember { mutableStateOf(false) }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp),
+            .height(84.dp), 
         color = Color.White,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        shadowElevation = 20.dp
+        shadowElevation = 16.dp
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Trường Home chung cho cả 2
-            NavBarItem(
-                icon = Icons.Default.Home,
-                label = "HOME",
-                isSelected = selectedIndex == 0,
-                enabled = enabled
-            ) { onItemSelected(0) }
-
-            // Trường Booking chung cho cả 2
-            NavBarItem(
-                icon = Icons.Default.LocalParking,
-                label = "BOOKING",
-                isSelected = selectedIndex == 1,
-                enabled = enabled
-            ) { onItemSelected(1) }
-            
-            if (!isAdmin) {
-                // Chỉ User mới có Tickets
+            // Home
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 NavBarItem(
-                    icon = Icons.Default.ConfirmationNumber,
-                    label = "TICKETS",
-                    isSelected = selectedIndex == 2,
+                    icon = Icons.Default.Home,
+                    label = "HOME",
+                    isSelected = selectedIndex == 0,
                     enabled = enabled
-                ) { onItemSelected(2) }
+                ) { onItemSelected(0) }
+            }
+
+            if (isAdmin) {
+                // Admin: Nút QR SCAN nổi bật ở giữa với hình vuông bo góc
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    ProminentNavBarItem(
+                        icon = Icons.Default.QrCodeScanner,
+                        label = "QR SCAN",
+                        isSelected = selectedIndex == 1,
+                        enabled = enabled
+                    ) { showQrOptions = true }
+
+                    DropdownMenu(
+                        expanded = showQrOptions,
+                        onDismissRequest = { showQrOptions = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Check-in") },
+                            onClick = {
+                                showQrOptions = false
+                                onAdminQrClick("checkin")
+                            },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Login, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Check-out") },
+                            onClick = {
+                                showQrOptions = false
+                                onAdminQrClick("checkout")
+                            },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, null) }
+                        )
+                    }
+                }
+            } else {
+                // User: Booking
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    NavBarItem(
+                        icon = Icons.Default.LocalParking,
+                        label = "BOOKING",
+                        isSelected = selectedIndex == 1,
+                        enabled = enabled
+                    ) { onItemSelected(1) }
+                }
+                
+                // User: Tickets
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    NavBarItem(
+                        icon = Icons.Default.ConfirmationNumber,
+                        label = "TICKETS",
+                        isSelected = selectedIndex == 2,
+                        enabled = enabled
+                    ) { onItemSelected(2) }
+                }
             }
             
-            // Trường Settings chung cho cả 2
-            NavBarItem(
-                icon = Icons.Default.Settings,
-                label = "SETTINGS",
-                isSelected = isAdmin && selectedIndex == 2 || !isAdmin && selectedIndex == 3,
-                enabled = enabled
-            ) { onItemSelected(if (isAdmin) 2 else 3) }
+            // Settings
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                NavBarItem(
+                    icon = Icons.Default.Settings,
+                    label = "SETTINGS",
+                    isSelected = (isAdmin && selectedIndex == 2) || (!isAdmin && selectedIndex == 3),
+                    enabled = enabled
+                ) { onItemSelected(if (isAdmin) 2 else 3) }
+            }
         }
     }
 }
@@ -181,26 +225,67 @@ private fun NavBarItem(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    Box(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(12.dp))
             .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 4.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                icon,
-                contentDescription = label,
-                tint = if (isSelected) PrimaryBlue else if (!enabled) Color.LightGray.copy(alpha = 0.5f) else Color.LightGray,
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                label,
-                fontSize = 10.sp,
-                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                color = if (isSelected) PrimaryBlue else if (!enabled) Color.LightGray.copy(alpha = 0.5f) else Color.LightGray
-            )
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (isSelected) PrimaryBlue else if (!enabled) Color.LightGray.copy(alpha = 0.5f) else Color.LightGray,
+            modifier = Modifier.size(26.dp)
+        )
+        Text(
+            label,
+            fontSize = 10.sp,
+            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+            color = if (isSelected) PrimaryBlue else Color.LightGray
+        )
+    }
+}
+
+@Composable
+private fun ProminentNavBarItem(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(16.dp) // Hình vuông bo góc
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxHeight()
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+    ) {
+        Surface(
+            shape = shape,
+            color = if (isSelected) PrimaryBlue else PrimaryBlue.copy(alpha = 0.12f),
+            shadowElevation = if (isSelected) 8.dp else 0.dp,
+            modifier = Modifier.size(54.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon,
+                    contentDescription = label,
+                    tint = if (isSelected) Color.White else PrimaryBlue,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = PrimaryBlue
+        )
     }
 }

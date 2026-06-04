@@ -14,6 +14,7 @@ import java.util.*
 
 class ParkingLotDetailViewModel(
     private val repository: ParkingRepository,
+    private val slotRepository: com.uet.parking.data.repository.SlotRepository,
     private val lotId: String,
     private val adminId: String
 ) : ViewModel() {
@@ -26,6 +27,10 @@ class ParkingLotDetailViewModel(
 
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage = _toastMessage.asStateFlow()
+
+    data class ScanResult(val success: Boolean, val message: String, val slot: com.uet.parking.data.model.Slot? = null)
+    private val _scanResult = MutableStateFlow<ScanResult?>(null)
+    val scanResult = _scanResult.asStateFlow()
 
     init {
         refreshLotData()
@@ -78,39 +83,21 @@ class ParkingLotDetailViewModel(
                 return@launch
             }
 
-            // Kiểm tra thời gian: Sớm hơn tối đa 30 phút
-            val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-            val startTime = try { sdf.parse(ticket.startTime ?: "") } catch (e: Exception) { null }
+            val capacity = currentLot?.capacity ?: 0
+            val assignedSlot = slotRepository.assignSlotToTicket(lotId, ticketId, ticket.userId, capacity)
             
-            if (startTime != null) {
-                val now = Date()
-                val diffMillis = startTime.time - now.time
-                val diffMinutes = diffMillis / (60 * 1000)
-
-                // Nếu đến sớm hơn 30 phút (diffMinutes > 30)
-                if (diffMinutes > 30) {
-                    val waitMinutes = diffMinutes - 30
-                    if (waitMinutes >= 60) {
-                        val hours = waitMinutes / 60
-                        val mins = waitMinutes % 60
-                        val hourStr = if (hours > 0) "${hours} giờ " else ""
-                        val minStr = if (mins > 0) "${mins} phút" else ""
-                        _toastMessage.value = "Vé bắt đầu lúc ${ticket.startTime}. Vui lòng quay lại sau $hourStr$minStr".trim()
-                    } else {
-                        _toastMessage.value = "Vào bãi thất bại: Vui lòng quay lại sau $waitMinutes phút"
-                    }
-                    return@launch
-                }
+            if (assignedSlot == null) {
+                _scanResult.value = ScanResult(false, "Bãi hiện đã đạt tối đa sức chứa, không còn slot trống.")
+                return@launch
             }
 
-            repository.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.value)
             repository.updateCurrentOccupancy(lotId, (currentLot?.current ?: 0) + 1)
             repository.incrementKPI(adminId)
             android.util.Log.d("QR_SCAN_DEBUG", "👉 thành")
             
             com.uet.parking.utils.NotificationHelper.showCheckInSuccess(context, ticketId, ticket.userId)
             
-            _toastMessage.value = "Quét vào thành công! Xe đã vào bãi."
+            _scanResult.value = ScanResult(true, "Quét vào thành công! Xe đã vào bãi.", assignedSlot)
             refreshLotData()
         }
     }
@@ -146,7 +133,8 @@ class ParkingLotDetailViewModel(
                 }
             }
 
-            // 2. Xóa vé và cập nhật bãi
+            // 2. Giải phóng slot và cập nhật bãi
+            slotRepository.releaseSlotFromTicket(ticketId)
             repository.incrementKPI(adminId)
             repository.deleteTicket(ticketId)
             
@@ -177,5 +165,16 @@ class ParkingLotDetailViewModel(
 
     fun clearToast() {
         _toastMessage.value = null
+    }
+
+    fun clearScanResult() {
+        _scanResult.value = null
+    }
+
+    fun initMockSlots() {
+        viewModelScope.launch {
+            slotRepository.initMockSlotsForLot(lotId)
+            _toastMessage.value = "Đã khởi tạo dữ liệu slot mẫu."
+        }
     }
 }
