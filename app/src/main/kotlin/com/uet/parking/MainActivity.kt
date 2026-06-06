@@ -92,7 +92,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
 
     // Notification state management (UI removed, keeping for system notifications if needed)
     val notificationViewModel: NotificationViewModel = viewModel(
-        factory = ViewModelFactory(repository, currentUserId ?: "")
+        factory = ViewModelFactory(repository, currentUserId ?: "", context.applicationContext as android.app.Application)
     )
 
     LaunchedEffect(currentUserId) {
@@ -321,7 +321,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
             composable(Screen.HOME.route) {
                 val userId = currentUserId ?: ""
                 val homeViewModel: HomeViewModel = viewModel(
-                    factory = ViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId, context.applicationContext as android.app.Application)
                 )
                 HomeScreen(
                     viewModel = homeViewModel,
@@ -335,7 +335,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
             composable(Screen.PAYMENT.route) {
                 val userId = currentUserId ?: ""
                 val paymentViewModel: PaymentViewModel = viewModel(
-                    factory = ViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId, context.applicationContext as android.app.Application)
                 )
 
                 PaymentScreen(
@@ -356,7 +356,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
             composable(Screen.BOOKING.route) {
                 val userId = currentUserId ?: ""
                 val bookingViewModel: BookingViewModel = viewModel(
-                    factory = ViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId, context.applicationContext as android.app.Application)
                 )
                 BookingFormScreen(
                     viewModel = bookingViewModel,
@@ -375,7 +375,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
             composable(Screen.SUCCESS.route) {
                 val userId = currentUserId ?: ""
                 val bookingViewModel: BookingViewModel = viewModel(
-                    factory = ViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId, context.applicationContext as android.app.Application)
                 )
                 SuccessScreen(
                     viewModel = bookingViewModel,
@@ -386,7 +386,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
             composable(Screen.TICKETS.route) {
                 val userId = currentUserId ?: ""
                 val bookingViewModel: BookingViewModel = viewModel(
-                    factory = ViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId, context.applicationContext as android.app.Application)
                 )
                 TicketScreen(viewModel = bookingViewModel)
             }
@@ -395,6 +395,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
                 val userId = currentUserId ?: ""
                 SettingsScreen(
                     userId = userId,
+                    application = context.applicationContext as android.app.Application,
                     onBackClick = { navController.popBackStack() },
                     onLogoutClick = handleLogout,
                     onEditProfileClick = { navController.navigate(Screen.EDIT_PROFILE.route) }
@@ -404,7 +405,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
             composable(Screen.EDIT_PROFILE.route) {
                 val userId = currentUserId ?: ""
                 val settingsViewModel: SettingsViewModel = viewModel(
-                    factory = ViewModelFactory(repository, userId)
+                    factory = ViewModelFactory(repository, userId, context.applicationContext as android.app.Application)
                 )
                 EditProfileScreen(
                     viewModel = settingsViewModel,
@@ -416,6 +417,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
             composable(Screen.ADMIN_HOME.route) {
                 AdminHomepage(
                     userId = currentUserId ?: "",
+                    application = context.applicationContext as android.app.Application,
                     onNavigateToDetail = { id ->
                         navController.navigate(Screen.ADMIN_DETAIL.route.replace("{lotId}", id))
                     }
@@ -460,6 +462,7 @@ fun MainNavigation(activityContext: ComponentActivity) {
                 val userId = currentUserId ?: ""
                 SettingsScreen(
                     userId = userId,
+                    application = context.applicationContext as android.app.Application,
                     onBackClick = { navController.popBackStack() },
                     onLogoutClick = handleLogout,
                     onEditProfileClick = { navController.navigate(Screen.EDIT_PROFILE.route) }

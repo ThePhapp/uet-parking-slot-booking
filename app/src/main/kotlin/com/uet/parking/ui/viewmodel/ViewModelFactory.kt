@@ -1,12 +1,14 @@
 package com.uet.parking.ui.viewmodel
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.uet.parking.data.repository.ParkingRepository
 
 class ViewModelFactory(
     private val repository: ParkingRepository,
-    private val userId: String
+    private val userId: String,
+    private val application: Application
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
@@ -32,7 +34,7 @@ class ViewModelFactory(
             }
             modelClass.isAssignableFrom(NotificationViewModel::class.java) -> {
                 @Suppress("UNCHECKED_CAST")
-                NotificationViewModel(repository) as T
+                NotificationViewModel(application, repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

@@ -21,20 +21,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uet.parking.data.model.User
+import com.uet.parking.data.model.UserWithProfile
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
+import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.Wc
 
 @Composable
 fun ProfileScreen(userId: String) {
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
-    var user by remember { mutableStateOf<User?>(null) }
+    var userProfile by remember { mutableStateOf<UserWithProfile?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(userId) {
-        user = repository.getUserByIdSuspend(userId)
-        isLoading = false
+        repository.getUserWithProfile(userId).collect {
+            userProfile = it
+            isLoading = false
+        }
     }
 
     Box(
@@ -73,14 +78,14 @@ fun ProfileScreen(userId: String) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = user?.name ?: "Người dùng",
+                    text = userProfile?.user?.name ?: "Người dùng",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF11131F)
                 )
 
                 Text(
-                    text = user?.role?.name ?: "USER",
+                    text = userProfile?.user?.role?.name ?: "USER",
                     fontSize = 14.sp,
                     color = PrimaryBlue,
                     fontWeight = FontWeight.Medium
@@ -96,13 +101,20 @@ fun ProfileScreen(userId: String) {
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        val user = userProfile?.user
+                        val info = userProfile?.info
+                        
                         if (user?.role == com.uet.parking.data.model.enums.UserRole.USER) {
-                            ProfileInfoItem(Icons.Default.Badge, "Mã sinh viên", user?.email?.substringBefore("@") ?: "---")
+                            ProfileInfoItem(Icons.Default.Badge, "Mã sinh viên", info?.studentId ?: "Chưa cập nhật")
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
                         }
                         ProfileInfoItem(Icons.Default.Email, "Email", user?.email ?: "---")
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
-                        ProfileInfoItem(Icons.Default.Phone, "Số điện thoại", "Chưa cập nhật")
+                        ProfileInfoItem(Icons.Default.Phone, "Số điện thoại", info?.phoneNumber ?: "Chưa cập nhật")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
+                        ProfileInfoItem(Icons.Default.Cake, "Ngày sinh", info?.birthday ?: "Chưa cập nhật")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
+                        ProfileInfoItem(Icons.Default.Wc, "Giới tính", info?.gender ?: "Chưa cập nhật")
                     }
                 }
             }

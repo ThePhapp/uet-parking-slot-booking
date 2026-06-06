@@ -1,5 +1,6 @@
 package com.uet.parking.ui.activity
 
+import android.app.Application
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -23,7 +24,7 @@ class BookingFormActivity : AppCompatActivity() {
             val repository = ParkingRepository(firestore)
             
             val bookingViewModel: BookingViewModel = viewModel(
-                factory = ViewModelFactory(repository, userId)
+                factory = ViewModelFactory(repository, userId, application as Application)
             )
 
             BookingFormScreen(

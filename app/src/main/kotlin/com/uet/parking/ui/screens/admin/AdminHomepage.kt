@@ -49,6 +49,7 @@ import java.util.*
 @Composable
 fun AdminHomepage(
     userId: String,
+    application: android.app.Application,
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -56,7 +57,7 @@ fun AdminHomepage(
     val repository = remember { ParkingRepository(firestore) }
 
     val viewModel: AdminViewModel = viewModel(
-        factory = ViewModelFactory(repository, userId)
+        factory = ViewModelFactory(repository, userId, application)
     )
 
     val parkingLots by viewModel.parkingLots.collectAsState()
