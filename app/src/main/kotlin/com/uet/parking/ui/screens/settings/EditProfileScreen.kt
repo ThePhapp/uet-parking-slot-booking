@@ -24,6 +24,9 @@ import com.uet.parking.data.model.UserInfo
 import com.uet.parking.data.model.UserWithProfile
 import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.viewmodel.SettingsViewModel
+import com.uet.parking.utils.ValidationUtils
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,14 +46,19 @@ fun EditProfileScreen(
     var nameError by remember { mutableStateOf<String?>(null) }
     var phoneNumberError by remember { mutableStateOf<String?>(null) }
     var birthdayError by remember { mutableStateOf<String?>(null) }
+    var studentIdError by remember { mutableStateOf<String?>(null) }
+    var genderError by remember { mutableStateOf<String?>(null) }
 
-    fun validatePhoneNumber(phone: String): Boolean {
-        return phone.matches(Regex("^[0-9]{10}$"))
-    }
-
-    fun validateDate(date: String): Boolean {
-        return date.matches(Regex("^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[012])/(19|20)\\d\\d$"))
-    }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var expandedGender by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                // Không cho phép chọn ngày sau ngày hiện tại
+                return utcTimeMillis <= System.currentTimeMillis()
+            }
+        }
+    )
 
     // 2. Cập nhật state khi dữ liệu từ DB được tải lên thành công
     LaunchedEffect(userProfile) {
@@ -92,8 +100,15 @@ fun EditProfileScreen(
                 EditField(
                     label = "Mã sinh viên",
                     value = studentId,
-                    onValueChange = { studentId = it },
-                    icon = Icons.Default.Badge
+                    onValueChange = { 
+                        if (it.length <= 8 && it.all { char -> char.isDigit() }) {
+                            studentId = it
+                            studentIdError = if (it.isEmpty()) null else ValidationUtils.validateStudentId(it)
+                        }
+                    },
+                    icon = Icons.Default.Badge,
+                    isError = studentIdError != null,
+                    errorMessage = studentIdError
                 )
             }
 
@@ -101,8 +116,10 @@ fun EditProfileScreen(
                 label = "Số điện thoại",
                 value = phoneNumber,
                 onValueChange = { 
-                    phoneNumber = it
-                    phoneNumberError = if (it.isEmpty() || validatePhoneNumber(it)) null else "Số điện thoại không hợp lệ (10 chữ số)"
+                    if (it.length <= 10 && it.all { char -> char.isDigit() }) {
+                        phoneNumber = it
+                        phoneNumberError = if (it.isEmpty()) null else if (ValidationUtils.validatePhoneNumber(it)) null else "Số điện thoại không hợp lệ (10 chữ số)"
+                    }
                 },
                 icon = Icons.Default.Call,
                 isError = phoneNumberError != null,
@@ -114,19 +131,91 @@ fun EditProfileScreen(
                 value = birthday,
                 onValueChange = { 
                     birthday = it
-                    birthdayError = if (it.isEmpty() || validateDate(it)) null else "Ngày sinh không đúng định dạng DD/MM/YYYY"
+                    birthdayError = if (it.isEmpty()) null else ValidationUtils.validateDate(it)
                 },
                 icon = Icons.Default.Cake,
                 isError = birthdayError != null,
-                errorMessage = birthdayError
+                errorMessage = birthdayError,
+                trailingIcon = {
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = "Chọn ngày", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
             )
 
-            EditField(
-                label = "Giới tính",
-                value = gender,
-                onValueChange = { gender = it },
-                icon = Icons.Default.Wc
-            )
+            if (showDatePicker) {
+                DatePickerDialog(
+                    onDismissRequest = { showDatePicker = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            datePickerState.selectedDateMillis?.let { millis ->
+                                val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                birthday = sdf.format(Date(millis))
+                                birthdayError = null
+                            }
+                            showDatePicker = false
+                        }) {
+                            Text("Chọn")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDatePicker = false }) {
+                            Text("Hủy")
+                        }
+                    }
+                ) {
+                    DatePicker(state = datePickerState)
+                }
+            }
+
+            // Giới tính Dropdown
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Giới tính",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF434653),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                )
+                ExposedDropdownMenuBox(
+                    expanded = expandedGender,
+                    onExpandedChange = { expandedGender = !expandedGender },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = gender,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        leadingIcon = { Icon(Icons.Default.Wc, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedGender) },
+                        shape = RoundedCornerShape(12.dp),
+                        isError = genderError != null,
+                        supportingText = if (genderError != null) { { Text(genderError!!) } } else null,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color(0xFFC3C6D5)
+                        ),
+                        singleLine = true
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedGender,
+                        onDismissRequest = { expandedGender = false }
+                    ) {
+                        listOf("Nam", "Nữ").forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    gender = option
+                                    genderError = null
+                                    expandedGender = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -134,10 +223,17 @@ fun EditProfileScreen(
             Button(
                 onClick = {
                     val isNameValid = name.isNotBlank()
-                    val isPhoneValid = phoneNumber.isEmpty() || validatePhoneNumber(phoneNumber)
-                    val isDateValid = birthday.isEmpty() || validateDate(birthday)
+                    val isPhoneValid = phoneNumber.isNotEmpty() && ValidationUtils.validatePhoneNumber(phoneNumber)
+                    val dateError = if (birthday.isEmpty()) null else ValidationUtils.validateDate(birthday)
+                    val isDateValid = dateError == null
                     
-                    if (isNameValid && isPhoneValid && isDateValid) {
+                    val sIdError = if (userProfile?.user?.role == com.uet.parking.data.model.enums.UserRole.USER) ValidationUtils.validateStudentId(studentId) else null
+                    val isSIdValid = sIdError == null
+                    
+                    val gError = ValidationUtils.validateGender(gender)
+                    val isGenderValid = gError == null
+                    
+                    if (isNameValid && isPhoneValid && isDateValid && isSIdValid && isGenderValid) {
                         val updatedInfo = UserInfo(
                             userId = viewModel.userId,
                             studentId = studentId,
@@ -150,8 +246,10 @@ fun EditProfileScreen(
                         onBackClick() // Quay lại màn hình Profile sau khi lưu
                     } else {
                         if (!isNameValid) nameError = "Không được để trống họ tên"
-                        if (!isPhoneValid) phoneNumberError = "Số điện thoại không hợp lệ (10 chữ số)"
-                        if (!isDateValid) birthdayError = "Ngày sinh không đúng định dạng DD/MM/YYYY"
+                        if (!isPhoneValid) phoneNumberError = if (phoneNumber.isEmpty()) "Số điện thoại không được để trống" else "Số điện thoại không hợp lệ (10 chữ số)"
+                        if (!isDateValid) birthdayError = dateError
+                        if (!isSIdValid) studentIdError = sIdError
+                        if (!isGenderValid) genderError = gError
                     }
                 },
                 modifier = Modifier
@@ -175,7 +273,8 @@ fun EditField(
     onValueChange: (String) -> Unit,
     icon: ImageVector,
     isError: Boolean = false,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -189,6 +288,7 @@ fun EditField(
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            trailingIcon = trailingIcon,
             shape = RoundedCornerShape(12.dp),
             isError = isError,
             supportingText = if (isError && errorMessage != null) {

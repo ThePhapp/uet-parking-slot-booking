@@ -21,7 +21,7 @@ object NotificationHelper {
     private const val CHANNEL_ID = "parking_notifications_v2"
     private const val CHANNEL_NAME = "Parking Notifications"
     private const val CHANNEL_DESC = "Notifications for parking tickets and updates"
-    
+
     private val repository by lazy { ParkingRepository(FirebaseFirestore.getInstance()) }
 
     fun createNotificationChannel(context: Context) {
@@ -36,6 +36,39 @@ object NotificationHelper {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
+    }
+
+    fun showSystemNotification(context: Context, title: String, content: String, notificationId: String? = null) {
+        // Kiểm tra cài đặt thông báo trong SharedPreferences cho system notification
+        val sharedPrefs = context.getSharedPreferences("parking_prefs", Context.MODE_PRIVATE)
+        val notificationsEnabled = sharedPrefs.getBoolean("notifications_enabled", true)
+
+        if (!notificationsEnabled) return
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            if (notificationId != null) {
+                putExtra("notificationId", notificationId)
+            }
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId?.hashCode() ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(notificationId?.hashCode() ?: System.currentTimeMillis().toInt(), builder.build())
     }
 
     private fun showNotification(context: Context, title: String, content: String, ticketId: String?, userId: String?, type: String = "INFO") {
@@ -53,36 +86,7 @@ object NotificationHelper {
             }
         }
 
-        // Kiểm tra cài đặt thông báo trong SharedPreferences cho system notification
-        val sharedPrefs = context.getSharedPreferences("parking_prefs", Context.MODE_PRIVATE)
-        val notificationsEnabled = sharedPrefs.getBoolean("notifications_enabled", true)
-        
-        if (!notificationsEnabled) return
-
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            if (ticketId != null) {
-                putExtra("ticketId", ticketId)
-            }
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            ticketId?.hashCode() ?: 0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title)
-            .setContentText(content)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(ticketId?.hashCode() ?: System.currentTimeMillis().toInt(), builder.build())
+        showSystemNotification(context, title, content, ticketId)
     }
 
     fun showBookingSuccess(context: Context, ticketId: String?, userId: String?) {
@@ -112,7 +116,7 @@ object NotificationHelper {
     fun showTicketOverdue(context: Context, ticketId: String?, userId: String?) {
         showNotification(context, "Vé đã quá hạn", "Vé của bạn đã quá hạn. Vui lòng lấy xe ngay.", ticketId, userId, "ERROR")
     }
-    
+
     fun showPreBooking(context: Context, ticketId: String?, userId: String?) {
         showNotification(context, "Sắp đến giờ gửi xe", "Vé của bạn sẽ bắt đầu sau 30 phút. Vui lòng chuẩn bị đến bãi đỗ.", ticketId, userId, "INFO")
     }

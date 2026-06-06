@@ -30,6 +30,7 @@ import com.uet.parking.data.model.enums.UserRole
 import com.uet.parking.data.repository.ParkingRepository
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.theme.OnSurfaceVariant
+import com.uet.parking.utils.ValidationUtils
 import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -43,6 +44,7 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var studentId by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf("") }
 
     val context = LocalContext.current
@@ -102,7 +104,12 @@ fun RegisterScreen(
 
                     AuthTextField(
                         value = fullName,
-                        onValueChange = { fullName = it; errorText = "" },
+                        onValueChange = { 
+                            if (it.all { char -> char.isLetter() || char.isWhitespace() }) {
+                                fullName = it
+                                errorText = "" 
+                            }
+                        },
                         label = "HỌ VÀ TÊN",
                         placeholder = "Nguyễn Văn A",
                         icon = Icons.Default.Badge
@@ -116,6 +123,21 @@ fun RegisterScreen(
                         label = "EMAIL",
                         placeholder = "example@vnu.edu.vn",
                         icon = Icons.Default.Person
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    AuthTextField(
+                        value = studentId,
+                        onValueChange = { 
+                            if (it.length <= 8 && it.all { char -> char.isDigit() }) {
+                                studentId = it
+                                errorText = "" 
+                            }
+                        },
+                        label = "MÃ SINH VIÊN",
+                        placeholder = "2102XXXX",
+                        icon = Icons.Default.Badge
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -155,12 +177,17 @@ fun RegisterScreen(
                         onClick = {
                             val trimmedEmail = email.trim()
                             val trimmedName = fullName.trim()
-                            if (trimmedEmail.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || trimmedName.isEmpty()) {
+                            if (trimmedEmail.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || trimmedName.isEmpty() || studentId.isEmpty()) {
                                 errorText = "Vui lòng điền đầy đủ thông tin"
                                 return@Button
                             }
                             if (!trimmedEmail.endsWith("@vnu.edu.vn")) {
                                 errorText = "Email phải có đuôi @vnu.edu.vn"
+                                return@Button
+                            }
+                            val sIdError = ValidationUtils.validateStudentId(studentId)
+                            if (sIdError != null) {
+                                errorText = sIdError
                                 return@Button
                             }
                             if (password != confirmPassword) {
@@ -181,8 +208,14 @@ fun RegisterScreen(
                                         )
                                         val userId = repository.createUser(newUser)
 
-                                        // Khởi tạo thông tin nợ cho User mới
-                                        repository.createUserInfo(UserInfo(userId = userId, debt = 0.0))
+                                        // Khởi tạo thông tin nợ và MSSV cho User mới
+                                        repository.createUserInfo(
+                                            UserInfo(
+                                                userId = userId, 
+                                                studentId = studentId,
+                                                debt = 0.0
+                                            )
+                                        )
 
                                         Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
                                         onRegisterSuccess()

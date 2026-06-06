@@ -139,6 +139,7 @@ fun ChangePasswordDialog(
 @Composable
 fun SettingsScreen(
     userId: String,
+    application: android.app.Application,
     onBackClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     onEditProfileClick: () -> Unit = {}
@@ -146,7 +147,7 @@ fun SettingsScreen(
     val firestore = remember { FirebaseFirestore.getInstance() }
     val repository = remember { ParkingRepository(firestore) }
     val viewModel: SettingsViewModel = viewModel(
-        factory = ViewModelFactory(repository, userId)
+        factory = ViewModelFactory(repository, userId, application)
     )
     val userProfile by viewModel.userProfile.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()

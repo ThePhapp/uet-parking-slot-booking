@@ -35,23 +35,9 @@ fun AppTopBar(
     onHomeClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
-    containerColor: Color = Color.White.copy(alpha = 0.9f),
-    hasNotification: Boolean = false,
-    notificationCount: Int = 0,
-    notifications: List<Notification> = emptyList(),
-    onNotificationClick: (String) -> Unit = {},
-    onMarkAllRead: () -> Unit = {},
-    onNotificationMenuOpened: () -> Unit = {}
+    containerColor: Color = Color.White.copy(alpha = 0.9f)
 ) {
     var userMenuExpanded by remember { mutableStateOf(false) }
-    var notificationMenuExpanded by remember { mutableStateOf(false) }
-
-    // Theo dõi khi menu mở
-    LaunchedEffect(notificationMenuExpanded) {
-        if (notificationMenuExpanded) {
-            onNotificationMenuOpened()
-        }
-    }
 
     TopAppBar(
         title = {
