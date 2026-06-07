@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 @kotlin.OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 object NotificationHelper {
 
-    private const val CHANNEL_ID = "parking_notifications_v2"
+    private const val CHANNEL_ID = "parking_notifications_v3"
     private const val CHANNEL_NAME = "Parking Notifications"
     private const val CHANNEL_DESC = "Notifications for parking tickets and updates"
 
@@ -29,9 +29,10 @@ object NotificationHelper {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = CHANNEL_DESC
+                enableVibration(true)
             }
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
@@ -63,7 +64,8 @@ object NotificationHelper {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(content)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 

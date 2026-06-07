@@ -92,14 +92,20 @@ private fun PaymentQrScreen(
 ) {
     val scrollState = rememberScrollState()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F7FA))
-            .verticalScroll(scrollState)
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color(0xFFF5F7FA)),
+        contentAlignment = Alignment.Center
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
         // Header VNPAY
         Box(
             modifier = Modifier
@@ -204,7 +210,9 @@ private fun PaymentQrScreen(
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -284,6 +292,7 @@ private fun PaymentQrScreen(
         )
 
         Spacer(modifier = Modifier.height(20.dp))
+    }
     }
 }
 

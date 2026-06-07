@@ -14,6 +14,7 @@ class NotificationViewModel(application: Application, private val repository: Pa
     
     private var currentUserId: String? = null
     private var job: Job? = null
+    private var isFirstLoad = true
     
     // Lưu danh sách ID đã hiển thị thông báo hệ thống trong phiên làm việc này để tránh lặp lại
     private val displayedNotificationIds = mutableSetOf<String>()
@@ -24,6 +25,7 @@ class NotificationViewModel(application: Application, private val repository: Pa
         job?.cancel()
         
         job = viewModelScope.launch {
+            isFirstLoad = true
             combine(
                 repository.getNotificationsForUser(userId),
                 repository.getGlobalNotifications()
@@ -33,15 +35,18 @@ class NotificationViewModel(application: Application, private val repository: Pa
                 list.forEach { notif ->
                     // Chỉ gửi thông báo hệ thống nếu tin chưa đọc và chưa được hiển thị trong phiên này
                     if (!notif.isRead && notif.notificationId != null && !displayedNotificationIds.contains(notif.notificationId)) {
-                        NotificationHelper.showSystemNotification(
-                            getApplication(),
-                            notif.title,
-                            notif.message,
-                            notif.notificationId
-                        )
+                        if (!isFirstLoad) {
+                            NotificationHelper.showSystemNotification(
+                                getApplication(),
+                                notif.title,
+                                notif.message,
+                                notif.notificationId
+                            )
+                        }
                         displayedNotificationIds.add(notif.notificationId!!)
                     }
                 }
+                isFirstLoad = false
             }
         }
     }
