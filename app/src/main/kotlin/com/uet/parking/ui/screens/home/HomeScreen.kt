@@ -22,6 +22,7 @@ import com.uet.parking.ui.theme.BackgroundGray
 import com.uet.parking.ui.theme.PrimaryBlue
 import com.uet.parking.ui.viewmodel.HomeViewModel
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,6 +41,7 @@ fun HomeScreen(
     val pullToRefreshState = rememberPullToRefreshState()
     
     val schedules by viewModel.studySchedules.collectAsState()
+    val globalNotifications by viewModel.globalNotifications.collectAsState()
 
     val weeklySchedules = schedules
         .filter { schedule ->
@@ -186,6 +188,14 @@ fun HomeScreen(
 
             item { HomeSectionHeader() }
 
+            // --- Thông báo từ Admin ---
+            if (globalNotifications.isNotEmpty()) {
+                items(globalNotifications.take(5)) { notif ->
+                    AdminNotificationCard(notification = notif)
+                }
+            }
+
+            // --- Lịch học ---
             if (weeklySchedules.isEmpty()) {
                 item {
                     EmptyScheduleNotificationCard(
@@ -379,5 +389,73 @@ private fun Int.toShiftTime(): String {
         3 -> "13h30 - 16h10"
         4 -> "16h20 - 19h"
         else -> "Không rõ ca"
+    }
+}
+
+@Composable
+private fun AdminNotificationCard(notification: com.uet.parking.data.model.Notification) {
+    val typeColor = when (notification.type.uppercase()) {
+        "WARNING" -> Color(0xFFF57C00)
+        "ERROR" -> Color(0xFFD32F2F)
+        "SUCCESS" -> Color(0xFF388E3C)
+        else -> PrimaryBlue
+    }
+    val typeIcon = when (notification.type.uppercase()) {
+        "WARNING" -> "⚠️"
+        "ERROR" -> "🚫"
+        "SUCCESS" -> "✅"
+        else -> "📢"
+    }
+
+    val timeText = try {
+        val sdf = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+        sdf.format(notification.timestamp.toDate())
+    } catch (_: Exception) { "" }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(typeIcon, fontSize = 18.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Thông báo từ Quản trị",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = typeColor
+                    )
+                }
+                Text(
+                    text = timeText,
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = notification.title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF191C1E)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = notification.message,
+                fontSize = 14.sp,
+                color = Color(0xFF737685)
+            )
+        }
     }
 }

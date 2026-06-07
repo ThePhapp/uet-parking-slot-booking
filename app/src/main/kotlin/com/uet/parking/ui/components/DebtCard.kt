@@ -10,13 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -56,22 +52,12 @@ fun DebtCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = debt,
-                        color = Color(0xFF003D9B),
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Visibility,
-                            contentDescription = "Show debt",
-                            tint = Color(0xFF737685)
-                        )
-                    }
-                }
-
+                Text(
+                    text = debt,
+                    color = Color(0xFF003D9B),
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))

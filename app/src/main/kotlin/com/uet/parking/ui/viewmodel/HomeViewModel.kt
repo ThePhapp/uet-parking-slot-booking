@@ -30,6 +30,10 @@ class HomeViewModel(
     private val _studySchedules = MutableStateFlow<List<StudySchedule>>(emptyList())
     val studySchedules: StateFlow<List<StudySchedule>> = _studySchedules
 
+    val globalNotifications: StateFlow<List<com.uet.parking.data.model.Notification>> =
+        repository.getGlobalNotifications()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
