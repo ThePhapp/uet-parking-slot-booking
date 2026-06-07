@@ -1,6 +1,10 @@
 package com.uet.parking.ui.viewmodel
 
 import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.location.Location
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,15 +13,11 @@ import com.uet.parking.utils.LocationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import org.osmdroid.util.GeoPoint
-import java.net.HttpURLConnection
-import java.net.URL
-import kotlin.math.roundToInt
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
-class NavigationViewModel : ViewModel() {
+class NavigationViewModel : ViewModel(), SensorEventListener {
 
     private val _currentLocation = MutableStateFlow<Location?>(null)
     val currentLocation = _currentLocation.asStateFlow()
@@ -28,134 +28,113 @@ class NavigationViewModel : ViewModel() {
     private val _distanceToSlot = MutableStateFlow<Double?>(null)
     val distanceToSlot = _distanceToSlot.asStateFlow()
 
-    private val _etaMinutes = MutableStateFlow<Int?>(null)
-    val etaMinutes = _etaMinutes.asStateFlow()
+    private val _azimuth = MutableStateFlow(0f)
+    val azimuth = _azimuth.asStateFlow()
 
-    private val _isTracking = MutableStateFlow(true)
-    val isTracking = _isTracking.asStateFlow()
+    private val _bearingToSlot = MutableStateFlow(0f)
+    val bearingToSlot = _bearingToSlot.asStateFlow()
 
-    private val _routePoints = MutableStateFlow<List<GeoPoint>>(emptyList())
-    val routePoints = _routePoints.asStateFlow()
+    private var sensorManager: SensorManager? = null
+    private var accelerometer: Sensor? = null
+    private var magnetometer: Sensor? = null
 
-    private val _currentInstruction = MutableStateFlow<String?>(null)
-    val currentInstruction = _currentInstruction.asStateFlow()
+    private val gravity = FloatArray(3)
+    private val geomagnetic = FloatArray(3)
+    private var hasGravity = false
+    private var hasGeomagnetic = false
 
-    private var lastFetchLocation: Location? = null
+    private var isTrackingStarted = false
 
     fun setDestination(slot: Slot) {
         _destinationSlot.value = slot
     }
 
-    fun setTracking(tracking: Boolean) {
-        _isTracking.value = tracking
+    fun startTracking(context: Context) {
+        if (isTrackingStarted) return
+        isTrackingStarted = true
+        startLocationTracking(context)
+        startSensorTracking(context)
     }
 
-    fun startLocationTracking(context: Context) {
+    private fun startLocationTracking(context: Context) {
         viewModelScope.launch {
-            LocationHelper.getLocationUpdates(context).collect { location ->
-                _currentLocation.value = location
-                
-                val dest = _destinationSlot.value
-                if (dest?.latitude != null && dest.longitude != null) {
+            try {
+                LocationHelper.getLocationUpdates(context).collect { location ->
+                    _currentLocation.value = location
+                    
+                    val dest = _destinationSlot.value
+                    val destLat = dest?.latitude ?: 21.0382
+                    val destLon = dest?.longitude ?: 105.7827
+                    
                     val dist = LocationHelper.calculateDistance(
                         lat1 = location.latitude,
                         lon1 = location.longitude,
-                        lat2 = dest.latitude,
-                        lon2 = dest.longitude
+                        lat2 = destLat,
+                        lon2 = destLon
                     )
                     _distanceToSlot.value = dist
-                    
-                    // Tính thời gian đi bộ (Trung bình 1.4 m/s -> ~84m / phút)
-                    _etaMinutes.value = (dist / 84.0).roundToInt().coerceAtLeast(1)
-
-                    // Gọi API vẽ đường nếu chưa gọi, hoặc nếu người dùng đã di chuyển hơn 15 mét so với lần lấy trước
-                    val distFromLastFetch = if (lastFetchLocation != null) {
-                        LocationHelper.calculateDistance(
-                            location.latitude, location.longitude,
-                            lastFetchLocation!!.latitude, lastFetchLocation!!.longitude
-                        )
-                    } else { Double.MAX_VALUE }
-
-                    if (distFromLastFetch > 15.0) {
-                        lastFetchLocation = location
-                        fetchRouteFromOSRM(location.latitude, location.longitude, dest.latitude, dest.longitude)
-                    }
+                    _bearingToSlot.value = calculateBearing(
+                        location.latitude, location.longitude,
+                        destLat, destLon
+                    ).toFloat()
                 }
-            }
-        }
-    }
-
-    private fun fetchRouteFromOSRM(startLat: Double, startLon: Double, endLat: Double, endLon: Double) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                // Sử dụng API tìm đường cho người đi bộ (foot) của Project OSRM, yêu cầu trả về geojson và chi tiết bước (steps)
-                val urlString = "http://router.project-osrm.org/route/v1/foot/$startLon,$startLat;$endLon,$endLat?overview=full&geometries=geojson&steps=true"
-                val url = URL(urlString)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.setRequestProperty("User-Agent", "UETParkingApp/1.0")
-
-                if (connection.responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(response)
-                    val routes = json.optJSONArray("routes")
-                    
-                    if (routes != null && routes.length() > 0) {
-                        val route = routes.getJSONObject(0)
-                        
-                        // Parse tọa độ để vẽ đường uốn lượn
-                        val geometry = route.getJSONObject("geometry")
-                        val coordinates = geometry.getJSONArray("coordinates")
-                        val points = mutableListOf<GeoPoint>()
-                        for (i in 0 until coordinates.length()) {
-                            val coord = coordinates.getJSONArray(i)
-                            // OSRM trả về mảng [longitude, latitude]
-                            val lon = coord.getDouble(0)
-                            val lat = coord.getDouble(1)
-                            points.add(GeoPoint(lat, lon))
-                        }
-                        
-                        // Cập nhật State cho View vẽ Polyline
-                        _routePoints.value = points
-
-                        // Parse bước rẽ tiếp theo (Turn-by-turn instruction)
-                        val legs = route.optJSONArray("legs")
-                        if (legs != null && legs.length() > 0) {
-                            val leg = legs.getJSONObject(0)
-                            val steps = leg.optJSONArray("steps")
-                            if (steps != null && steps.length() > 1) {
-                                // step 0 thường là depart, ta lấy step 1 là bước di chuyển tiếp theo
-                                val nextStep = steps.getJSONObject(1)
-                                val maneuver = nextStep.optJSONObject("maneuver")
-                                val type = maneuver?.optString("type") ?: ""
-                                val modifier = maneuver?.optString("modifier") ?: ""
-                                val streetName = nextStep.optString("name", "đường nội khu")
-                                
-                                val instruction = mapOSRMInstructionToVietnamese(type, modifier, streetName)
-                                _currentInstruction.value = instruction
-                            } else {
-                                _currentInstruction.value = "Đi thẳng tới điểm đến"
-                            }
-                        }
-                    }
-                }
-                connection.disconnect()
             } catch (e: Exception) {
-                e.printStackTrace()
+
             }
         }
     }
 
-    private fun mapOSRMInstructionToVietnamese(type: String, modifier: String, street: String): String {
-        val streetName = if (street.isNotBlank()) "vào $street" else "vào đường nội khu"
-        return when {
-            type == "turn" && modifier.contains("left") -> "↩️ Rẽ trái $streetName"
-            type == "turn" && modifier.contains("right") -> "↪️ Rẽ phải $streetName"
-            type == "arrive" -> "📍 Bạn sắp đến nơi"
-            modifier.contains("straight") || type == "continue" -> "⬆️ Tiếp tục đi thẳng $streetName"
-            modifier.contains("slight left") -> "↖️ Chếch sang trái $streetName"
-            modifier.contains("slight right") -> "↗️ Chếch sang phải $streetName"
-            else -> "⬆️ Đi theo tuyến đường chỉ dẫn"
+    private fun startSensorTracking(context: Context) {
+        sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        magnetometer = sensorManager?.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+
+        accelerometer?.let {
+            val success = sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
+        magnetometer?.let {
+            val success = sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        sensorManager?.unregisterListener(this)
+    }
+
+    override fun onSensorChanged(event: SensorEvent) {
+        if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+            System.arraycopy(event.values, 0, gravity, 0, event.values.size)
+            hasGravity = true
+        } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
+            System.arraycopy(event.values, 0, geomagnetic, 0, event.values.size)
+            hasGeomagnetic = true
+        }
+
+        if (hasGravity && hasGeomagnetic) {
+            val r = FloatArray(9)
+            val i = FloatArray(9)
+            if (SensorManager.getRotationMatrix(r, i, gravity, geomagnetic)) {
+                val orientation = FloatArray(3)
+                SensorManager.getOrientation(r, orientation)
+                val azimuthRad = orientation[0]
+                _azimuth.value = Math.toDegrees(azimuthRad.toDouble()).toFloat()
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    private fun calculateBearing(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val phi1 = Math.toRadians(lat1)
+        val phi2 = Math.toRadians(lat2)
+        val deltaLambda = Math.toRadians(lon2 - lon1)
+
+        val y = sin(deltaLambda) * cos(phi2)
+        val x = cos(phi1) * sin(phi2) - sin(phi1) * cos(phi2) * cos(deltaLambda)
+        
+        var bearing = atan2(y, x)
+        bearing = Math.toDegrees(bearing)
+        return (bearing + 360) % 360
     }
 }
