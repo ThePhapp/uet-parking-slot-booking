@@ -127,12 +127,10 @@ class ParkingLotDetailViewModel(
 
             // 1. Tính tiền vào nợ của User
             ticket.userId?.let { userId ->
-                val userWithProfile = repository.getUserWithProfile(userId).firstOrNull()
-                userWithProfile?.let { profile ->
-                    val currentDebt = profile.info?.debt ?: 0.0
-                    val ticketPrice = ticket.price ?: 10000.0
-                    repository.updateDebt(userId, currentDebt + ticketPrice)
-                }
+                val userInfo = repository.getUserInfoByIdOnce(userId)
+                val currentDebt = userInfo?.debt ?: 0.0
+                val ticketPrice = ticket.price ?: 10000.0
+                repository.updateDebt(userId, currentDebt + ticketPrice)
             }
 
             // 2. Xóa vé và cập nhật bãi

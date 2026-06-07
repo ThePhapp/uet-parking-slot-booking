@@ -123,7 +123,7 @@ class ParkingRepository(
     }
 
     suspend fun getUserInfoByIdOnce(userId: String): UserInfo? {
-        return userInfoCollection.document(userId).get().await().toObject(UserInfo::class.java)
+        return userInfoCollection.document(userId).get(com.google.firebase.firestore.Source.SERVER).await().toObject(UserInfo::class.java)
     }
 
     suspend fun updateDebt(userId: String, newDebt: Double) {
@@ -200,7 +200,7 @@ class ParkingRepository(
     }
 
     suspend fun getTicketById(ticketId: String): Ticket? {
-        val doc = ticketsCollection.document(ticketId).get().await()
+        val doc = ticketsCollection.document(ticketId).get(com.google.firebase.firestore.Source.SERVER).await()
         return doc.toObject(Ticket::class.java)?.copy(ticketId = doc.id)
     }
 

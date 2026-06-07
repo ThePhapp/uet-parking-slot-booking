@@ -5,13 +5,25 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.uet.parking.data.model.UserWithProfile
 import com.uet.parking.data.repository.ParkingRepository
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
+
+enum class PaymentState {
+    IDLE,
+    PROCESSING,
+    SUCCESS,
+    ERROR
+}
 
 class PaymentViewModel(
     private val repository: ParkingRepository,
@@ -26,27 +38,52 @@ class PaymentViewModel(
                 initialValue = null
             )
 
-    fun buildVnpayMockQrUrl(amount: Double): String {
-        val amountInt = amount.toInt()
-        val info = URLEncoder.encode("VNPAY UET PARKING $userId $amountInt", "UTF-8")
+    private val _paymentState = MutableStateFlow(PaymentState.IDLE)
+    val paymentState = _paymentState.asStateFlow()
 
+    private val _transactionId = MutableStateFlow<String?>(null)
+    val transactionId = _transactionId.asStateFlow()
+
+    private val _paidAmount = MutableStateFlow(0.0)
+    val paidAmount = _paidAmount.asStateFlow()
+
+    fun buildVnpayQrData(amount: Double): String {
+        val amountInt = amount.toLong()
+        val txnRef = "UETPKG${System.currentTimeMillis() % 1000000}"
+        val info = "VNPAY|$txnRef|$amountInt|UETPARKING|$userId"
         return "https://api.qrserver.com/v1/create-qr-code/" +
-                "?size=350x350" +
-                "&data=$info"
+                "?size=400x400" +
+                "&data=${URLEncoder.encode(info, "UTF-8")}" +
+                "&color=0A1F44" +
+                "&bgcolor=FFFFFF"
     }
 
-    fun confirmVnpayPayment(onSuccess: () -> Unit) {
+    fun confirmPayment(debt: Double) {
+        if (_paymentState.value == PaymentState.PROCESSING) return
+        
         viewModelScope.launch {
-            repository.updateDebt(userId, 0.0)
-            onSuccess()
+            _paymentState.value = PaymentState.PROCESSING
+            _paidAmount.value = debt
+
+            delay(2500)
+
+            try {
+                repository.updateDebt(userId, 0.0)
+
+                val txnId = "VNP${SimpleDateFormat("yyMMddHHmmss", Locale.getDefault()).format(Date())}${(1000..9999).random()}"
+                _transactionId.value = txnId
+
+                _paymentState.value = PaymentState.SUCCESS
+            } catch (e: Exception) {
+                _paymentState.value = PaymentState.ERROR
+            }
         }
     }
 
-    fun confirmPayment(onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            repository.updateDebt(userId, 0.0)
-            onSuccess()
-        }
+    fun resetPayment() {
+        _paymentState.value = PaymentState.IDLE
+        _transactionId.value = null
+        _paidAmount.value = 0.0
     }
 }
 

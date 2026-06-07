@@ -136,8 +136,8 @@ fun HomeScreen(
                                     .padding(12.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("🚗", fontSize = 24.sp)
-                                Text("Đặt xe", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("🛵", fontSize = 24.sp)
+                                Text("Đặt vé", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
 
@@ -188,14 +188,12 @@ fun HomeScreen(
 
             item { HomeSectionHeader() }
 
-            // --- Thông báo từ Admin ---
             if (globalNotifications.isNotEmpty()) {
                 items(globalNotifications.take(5)) { notif ->
                     AdminNotificationCard(notification = notif)
                 }
             }
 
-            // --- Lịch học ---
             if (weeklySchedules.isEmpty()) {
                 item {
                     EmptyScheduleNotificationCard(
