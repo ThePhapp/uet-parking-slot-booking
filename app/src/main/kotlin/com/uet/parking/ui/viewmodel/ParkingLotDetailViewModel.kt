@@ -53,9 +53,9 @@ class ParkingLotDetailViewModel(
 
             val nextShift = when {
                 currentTime < "07:00" -> 1
-                currentTime < "09:15" -> 2
-                currentTime < "12:30" -> 3
-                currentTime < "15:15" -> 4
+                currentTime < "09:50" -> 2
+                currentTime < "13:30" -> 3
+                currentTime < "16:20" -> 4
                 else -> 1
             }
 
@@ -94,8 +94,7 @@ class ParkingLotDetailViewModel(
             repository.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.value)
             repository.updateCurrentOccupancy(lotId, (currentLot?.current ?: 0) + 1)
             repository.incrementKPI(adminId)
-            android.util.Log.d("QR_SCAN_DEBUG", "👉 thành")
-            
+
             com.uet.parking.utils.NotificationHelper.showCheckInSuccess(context, ticketId, ticket.userId)
             
             _toastMessage.value = "Quét vào thành công! Xe đã vào bãi."
